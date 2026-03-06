@@ -1,0 +1,39 @@
+# Core ML Framework
+tensorflow>=2.13.0
+keras>=2.13.0
+
+# Alternative: PyTorch (uncomment if preferred)
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# API Server
+fastapi>=0.103.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+joblib>=1.3.0
+h5py>=3.9.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.16.0
+
+# Progress bars
+tqdm>=4.66.0
+
+# Testing
+pytest>=7.4.0
+requests>=2.31.0
+
+# Optional: Advanced features
+# optuna>=3.3.0  # Hyperparameter optimization
+# tensorboard>=2.13.0  # Training visualization
+# grpcio>=1.57.0  # For gRPC integration
