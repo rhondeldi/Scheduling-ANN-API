@@ -106,7 +106,7 @@ def main():
     print("This uses the same fitness function as your Go backend.")
     
     try:
-        from calculate_fitness_for_historical import calculate_and_save
+        from scripts.calculate_fitness_for_historical import calculate_and_save
         
         # Determine output file
         input_path = Path(schedule_file)
@@ -146,7 +146,7 @@ def import_and_train(schedule_file):
     print("="*70)
     
     try:
-        from import_existing_data import ScheduleDataImporter
+        from scripts.import_existing_data import ScheduleDataImporter
         
         print(f"\nImporting from: {schedule_file}")
         

@@ -10,8 +10,8 @@ import numpy as np
 import struct
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
-import config
-from feature_extraction import FitnessFeatureExtractor
+import src.config as config
+from src.feature_extraction import FitnessFeatureExtractor
 from tqdm import tqdm
 
 

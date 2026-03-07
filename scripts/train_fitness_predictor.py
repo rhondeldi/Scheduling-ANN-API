@@ -9,9 +9,9 @@ import joblib
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
-import config
-from models import FitnessPredictorModel
-from feature_extraction import FitnessFeatureExtractor
+import src.config as config
+from src.models import FitnessPredictorModel
+from src.feature_extraction import FitnessFeatureExtractor
 import os
 import json
 from pathlib import Path

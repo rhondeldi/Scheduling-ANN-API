@@ -9,8 +9,8 @@ import numpy as np
 import joblib
 import tensorflow as tf
 from tensorflow import keras
-import config
-from feature_extraction import create_feature_extractors
+import src.config as config
+from src.feature_extraction import create_feature_extractors
 import os
 from datetime import datetime
 

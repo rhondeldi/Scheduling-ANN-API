@@ -3,7 +3,7 @@ Feature extraction from schedule data for ANN models
 """
 import numpy as np
 from typing import Dict, List, Any
-import config
+import src.config as config
 
 class ScheduleFeatureExtractor:
     """

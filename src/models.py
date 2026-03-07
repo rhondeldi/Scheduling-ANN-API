@@ -4,7 +4,7 @@ Neural Network Model Definitions
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
-import config
+import src.config as config
 
 
 class FitnessPredictorModel:

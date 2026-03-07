@@ -7,7 +7,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any
-import config
+import src.config as config
 
 
 class DataCollector:

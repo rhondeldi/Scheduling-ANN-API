@@ -5,7 +5,7 @@ This is a template script you can modify to import YOUR specific data.
 Uncomment and modify the section that matches your data format.
 """
 
-from import_existing_data import ScheduleDataImporter
+from scripts.import_existing_data import ScheduleDataImporter
 import json
 from pathlib import Path
 
