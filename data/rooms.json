@@ -1,0 +1,21 @@
+{
+  "rooms": [
+    {
+      "id": 1,
+      "name": "Conference Room A",
+      "types": "Lab"
+    },
+    {
+      "id": 2,
+      "name": "Conference Room B",
+      "capacity": 20,
+      "features": ["Video Conferencing", "Whiteboard"]
+    },
+    {
+      "id": 3,
+      "name": "Meeting Room C",
+      "capacity": 5,
+      "features": ["TV Screen", "Whiteboard"]
+    }
+  ]
+}
