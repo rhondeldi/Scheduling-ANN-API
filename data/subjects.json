@@ -1,952 +1,357 @@
 {
   "subjects": [
-    {
-      "id": 1,
-      "code": "GNED 01"
-    },
-    {
-      "id": 2,
-      "code": "GNED 02"
-    },
-    {
-      "id": 3,
-      "code": "GNED 03"
-    },
-    {
-      "id": 4,
-      "code": "GNED 04"
-    },
-    {
-      "id": 5,
-      "code": "GNED 05"
-    },
-    {
-      "id": 6,
-      "code": "GNED 06"
-    },
-    {
-      "id": 7,
-      "code": "GNED 07"
-    },
-    {
-      "id": 8,
-      "code": "GNED 08"
-    },
-    {
-      "id": 9,
-      "code": "GNED 09"
-    },
-    {
-      "id": 10,
-      "code": "GNED 10"
-    },
-    {
-      "id": 11,
-      "code": "GNED 11"
-    },
-    {
-      "id": 12,
-      "code": "GNED 12"
-    },
-    {
-      "id": 13,
-      "code": "GNED 13"
-    },
-    {
-      "id": 14,
-      "code": "GNED 14"
-    },
-    {
-      "id": 15,
-      "code": "GNED 15"
-    },
-    {
-      "id": 16,
-      "code": "COSC 50"
-    },
-    {
-      "id": 17,
-      "code": "COSC 55"
-    },
-    {
-      "id": 18,
-      "code": "COSC 60"
-    },
-    {
-      "id": 19,
-      "code": "COSC 65"
-    },
-    {
-      "id": 20,
-      "code": "COSC 70"
-    },
-    {
-      "id": 21,
-      "code": "COSC 75"
-    },
-    {
-      "id": 22,
-      "code": "COSC 80"
-    },
-    {
-      "id": 23,
-      "code": "COSC 85"
-    },
-    {
-      "id": 24,
-      "code": "COSC 90"
-    },
-    {
-      "id": 25,
-      "code": "COSC 95"
-    },
-    {
-      "id": 26,
-      "code": "COSC 100"
-    },
-    {
-      "id": 27,
-      "code": "COSC 105"
-    },
-    {
-      "id": 28,
-      "code": "COSC 110"
-    },
-    {
-      "id": 29,
-      "code": "COSC 111"
-    },
-    {
-      "id": 30,
-      "code": "COSC 200A"
-    },
-    {
-      "id": 31,
-      "code": "COSC 101"
-    },
-    {
-      "id": 33,
-      "code": "COSC 106"
-    },
-    {
-      "id": 34,
-      "code": "COSC 200B"
-    },
-    {
-      "id": 35,
-      "code": "ITEC 50"
-    },
-    {
-      "id": 36,
-      "code": "ITEC 55"
-    },
-    {
-      "id": 37,
-      "code": "ITEC 60"
-    },
-    {
-      "id": 38,
-      "code": "ITEC 65"
-    },
-    {
-      "id": 39,
-      "code": "ITEC 70"
-    },
-    {
-      "id": 40,
-      "code": "ITEC 75"
-    },
-    {
-      "id": 41,
-      "code": "ITEC 80"
-    },
-    {
-      "id": 42,
-      "code": "ITEC 85"
-    },
-    {
-      "id": 43,
-      "code": "ITEC 90"
-    },
-    {
-      "id": 44,
-      "code": "ITEC 95"
-    },
-    {
-      "id": 45,
-      "code": "ITEC 100"
-    },
-    {
-      "id": 46,
-      "code": "ITEC 101"
-    },
-    {
-      "id": 47,
-      "code": "ITEC 105"
-    },
-    {
-      "id": 48,
-      "code": "ITEC 106"
-    },
-    {
-      "id": 49,
-      "code": "ITEC 110"
-    },
-    {
-      "id": 50,
-      "code": "ITEC 111"
-    },
-    {
-      "id": 51,
-      "code": "ITEC 116"
-    },
-    {
-      "id": 52,
-      "code": "ITEC 199"
-    },
-    {
-      "id": 53,
-      "code": "ITEC 200B"
-    },
-    {
-      "id": 54,
-      "code": "ITEC 200A"
-    },
-    {
-      "id": 55,
-      "code": "DCIT 21"
-    },
-    {
-      "id": 56,
-      "code": "DCIT 22"
-    },
-    {
-      "id": 57,
-      "code": "DCIT 23"
-    },
-    {
-      "id": 58,
-      "code": "DCIT 24"
-    },
-    {
-      "id": 59,
-      "code": "DCIT 25"
-    },
-    {
-      "id": 60,
-      "code": "DCIT 55"
-    },
-    {
-      "id": 61,
-      "code": "DCIT 26"
-    },
-    {
-      "id": 62,
-      "code": "DCIT 65"
-    },
-    {
-      "id": 63,
-      "code": "DCIT 60"
-    },
-    {
-      "id": 64,
-      "code": "INSY 50"
-    },
-    {
-      "id": 65,
-      "code": "INSY 55"
-    },
-    {
-      "id": 66,
-      "code": "EDUC 50"
-    },
-    {
-      "id": 67,
-      "code": "EDUC 55"
-    },
-    {
-      "id": 68,
-      "code": "EDUC 60"
-    },
-    {
-      "id": 69,
-      "code": "EDUC 65"
-    },
-    {
-      "id": 70,
-      "code": "EDUC 70"
-    },
-    {
-      "id": 71,
-      "code": "EDUC 85"
-    },
-    {
-      "id": 72,
-      "code": "EDUC 75"
-    },
-    {
-      "id": 73,
-      "code": "EDUC 90"
-    },
-    {
-      "id": 74,
-      "code": "EDUC 80"
-    },
-    {
-      "id": 75,
-      "code": "EDUC 95"
-    },
-    {
-      "id": 76,
-      "code": "EDUC 197"
-    },
-    {
-      "id": 77,
-      "code": "EDUC 23"
-    },
-    {
-      "id": 78,
-      "code": "EDUC 197"
-    },
-    {
-      "id": 79,
-      "code": "EDUC 23"
-    },
-    {
-      "id": 80,
-      "code": "EDUC 198"
-    },
-    {
-      "id": 81,
-      "code": "PATHFITT 1"
-    },
-    {
-      "id": 82,
-      "code": "PATHFITT 2"
-    },
-    {
-      "id": 83,
-      "code": "PATHFITT 3"
-    },
-    {
-      "id": 84,
-      "code": "PATHFITT 4"
-    },
-    {
-      "id": 85,
-      "code": "NSTP 1"
-    },
-    {
-      "id": 86,
-      "code": "NSTP 2"
-    },
-    {
-      "id": 87,
-      "code": "ECED 21"
-    },
-    {
-      "id": 88,
-      "code": "ECED 22"
-    },
-    {
-      "id": 89,
-      "code": "ECED 23"
-    },
-    {
-      "id": 90,
-      "code": "ECED 24"
-    },
-    {
-      "id": 91,
-      "code": "ECED 26"
-    },
-    {
-      "id": 92,
-      "code": "ECED 27"
-    },
-    {
-      "id": 93,
-      "code": "ECED 29"
-    },
-    {
-      "id": 94,
-      "code": "ECED 30"
-    },
-    {
-      "id": 95,
-      "code": "ECED 32"
-    },
-    {
-      "id": 96,
-      "code": "ECED 33"
-    },
-    {
-      "id": 97,
-      "code": "ECED 34"
-    },
-    {
-      "id": 98,
-      "code": "ECED 35"
-    },
-    {
-      "id": 99,
-      "code": "ECED 36"
-    },
-    {
-      "id": 100,
-      "code": "ECED 37"
-    },
-    {
-      "id": 101,
-      "code": "ECED 38"
-    },
-    {
-      "id": 102,
-      "code": "ECED 39"
-    },
-    {
-      "id": 103,
-      "code": "ECED 40"
-    },
-    {
-      "id": 104,
-      "code": "ECED 41"
-    },
-    {
-      "id": 105,
-      "code": "EDFS 21"
-    },
-    {
-      "id": 106,
-      "code": "EDFS 22"
-    },
-    {
-      "id": 107,
-      "code": "ST 01"
-    },
-    {
-      "id": 108,
-      "code": "BMGT 21"
-    },
-    {
-      "id": 109,
-      "code": "BMGT 22"
-    },
-    {
-      "id": 110,
-      "code": "BMGT 23"
-    },
-    {
-      "id": 111,
-      "code": "BMGT 24"
-    },
-    {
-      "id": 112,
-      "code": "BMGT 25"
-    },
-    {
-      "id": 113,
-      "code": "BMGT 26"
-    },
-    {
-      "id": 114,
-      "code": "BMGT 27"
-    },
-    {
-      "id": 115,
-      "code": "BMGT 28"
-    },
-    {
-      "id": 116,
-      "code": "BMGT 29"
-    },
-    {
-      "id": 117,
-      "code": "BMGT 30"
-    },
-    {
-      "id": 118,
-      "code": "BMGT 200A"
-    },
-    {
-      "id": 119,
-      "code": "BMGT 200B"
-    },
-    {
-      "id": 120,
-      "code": "BMGT 199"
-    },
-    {
-      "id": 121,
-      "code": "FMGT 50"
-    },
-    {
-      "id": 122,
-      "code": "FMGT 55"
-    },
-    {
-      "id": 123,
-      "code": "FMGT 60"
-    },
-    {
-      "id": 124,
-      "code": "FMGT 65"
-    },
-    {
-      "id": 125,
-      "code": "FMGT 75"
-    },
-    {
-      "id": 126,
-      "code": "FMGT 80"
-    },
-    {
-      "id": 127,
-      "code": "FMGT 85"
-    },
-    {
-      "id": 128,
-      "code": "ELEC 1"
-    },
-    {
-      "id": 129,
-      "code": "ELEC 2"
-    },
-    {
-      "id": 130,
-      "code": "ELEC 3"
-    },
-    {
-      "id": 131,
-      "code": "ELEC 4"
-    },
-    {
-      "id": 132,
-      "code": "HRMT 50"
-    },
-    {
-      "id": 133,
-      "code": "HRMT 55"
-    },
-    {
-      "id": 134,
-      "code": "HRMT 60"
-    },
-    {
-      "id": 135,
-      "code": "HRMT 65"
-    },
-    {
-      "id": 136,
-      "code": "HRMT 70"
-    },
-    {
-      "id": 137,
-      "code": "HRMT 75"
-    },
-    {
-      "id": 138,
-      "code": "HRMT 80"
-    },
-    {
-      "id": 139,
-      "code": "HRMT 85"
-    },
-    {
-      "id": 140,
-      "code": "MKTG 50"
-    },
-    {
-      "id": 141,
-      "code": "MKTG 55"
-    },
-    {
-      "id": 142,
-      "code": "MKTG 60"
-    },
-    {
-      "id": 143,
-      "code": "MKTG 65"
-    },
-    {
-      "id": 144,
-      "code": "MKTG 70"
-    },
-    {
-      "id": 145,
-      "code": "MKTG 75"
-    },
-    {
-      "id": 146,
-      "code": "MKTG 80"
-    },
-    {
-      "id": 147,
-      "code": "MKTG 85"
-    },
-    {
-      "id": 148,
-      "code": "MATH 1"
-    },
-    {
-      "id": 149,
-      "code": "MATH 2"
-    },
-    {
-      "id": 150,
-      "code": "MATH 3"
-    },
-    {
-      "id": 151,
-      "code": "MATH 4"
-    },
-    {
-      "id": 152,
-      "code": "BSEE 21"
-    },
-    {
-      "id": 153,
-      "code": "BSEE 22"
-    },
-    {
-      "id": 154,
-      "code": "BSEE 23"
-    },
-    {
-      "id": 155,
-      "code": "BSEE 24"
-    },
-    {
-      "id": 156,
-      "code": "BSEE 25"
-    },
-    {
-      "id": 157,
-      "code": "BSEE 32"
-    },
-    {
-      "id": 158,
-      "code": "BSEE 39"
-    },
-    {
-      "id": 159,
-      "code": "BSEE 30"
-    },
-    {
-      "id": 160,
-      "code": "BSEE 34"
-    },
-    {
-      "id": 161,
-      "code": "BSEE 35"
-    },
-    {
-      "id": 162,
-      "code": "BSEE 28"
-    },
-    {
-      "id": 163,
-      "code": "BSEE 29"
-    },
-    {
-      "id": 164,
-      "code": "BSEE 36"
-    },
-    {
-      "id": 165,
-      "code": "BSEE 37"
-    },
-    {
-      "id": 166,
-      "code": "BSEE 111"
-    },
-    {
-      "id": 167,
-      "code": "BSEE 27"
-    },
-    {
-      "id": 168,
-      "code": "BSEE 31"
-    },
-    {
-      "id": 169,
-      "code": "BSEE 40"
-    },
-    {
-      "id": 170,
-      "code": "BSEE 41"
-    },
-    {
-      "id": 171,
-      "code": "BSEM 21"
-    },
-    {
-      "id": 172,
-      "code": "BSEM 22"
-    },
-    {
-      "id": 173,
-      "code": "BSEM 23"
-    },
-    {
-      "id": 174,
-      "code": "BSEM 24"
-    },
-    {
-      "id": 175,
-      "code": "BSEM 25"
-    },
-    {
-      "id": 176,
-      "code": "BSEM 26"
-    },
-    {
-      "id": 177,
-      "code": "BSEM 30"
-    },
-    {
-      "id": 178,
-      "code": "BSEM 33"
-    },
-    {
-      "id": 179,
-      "code": "BSEM 34"
-    },
-    {
-      "id": 180,
-      "code": "BSEM 36"
-    },
-    {
-      "id": 181,
-      "code": "BSEM 27"
-    },
-    {
-      "id": 182,
-      "code": "BSEM 32"
-    },
-    {
-      "id": 183,
-      "code": "BSEM 35"
-    },
-    {
-      "id": 184,
-      "code": "BSEM 38"
-    },
-    {
-      "id": 185,
-      "code": "BSEM 39"
-    },
-    {
-      "id": 186,
-      "code": "BSEM 28"
-    },
-    {
-      "id": 187,
-      "code": "BSEM 31"
-    },
-    {
-      "id": 188,
-      "code": "BSEM 37"
-    },
-    {
-      "id": 189,
-      "code": "BSEM 40"
-    },
-    {
-      "id": 190,
-      "code": "BSEM 29"
-    },
-    {
-      "id": 191,
-      "code": "BSHM 21"
-    },
-    {
-      "id": 192,
-      "code": "BSHM 05"
-    },
-    {
-      "id": 193,
-      "code": "BSHM 55"
-    },
-    {
-      "id": 194,
-      "code": "BSHM 60"
-    },
-    {
-      "id": 195,
-      "code": "BSHM 22"
-    },
-    {
-      "id": 196,
-      "code": "BSHM 101"
-    },
-    {
-      "id": 197,
-      "code": "BSHM 23"
-    },
-    {
-      "id": 198,
-      "code": "BSHM 141"
-    },
-    {
-      "id": 199,
-      "code": "BSHM 24"
-    },
-    {
-      "id": 200,
-      "code": "BSHM 26"
-    },
-    {
-      "id": 201,
-      "code": "BSHM 111"
-    },
-    {
-      "id": 202,
-      "code": "BSHM 199-A"
-    },
-    {
-      "id": 203,
-      "code": "BSHM 29"
-    },
-    {
-      "id": 204,
-      "code": "BSHM 70"
-    },
-    {
-      "id": 205,
-      "code": "BSHM 75"
-    },
-    {
-      "id": 206,
-      "code": "BSHM 121"
-    },
-    {
-      "id": 207,
-      "code": "BSHM 80"
-    },
-    {
-      "id": 208,
-      "code": "BSHM 80"
-    },
-    {
-      "id": 209,
-      "code": "BSHM 85"
-    },
-    {
-      "id": 210,
-      "code": "BSHM 90"
-    },
-    {
-      "id": 211,
-      "code": "BSHM 27"
-    },
-    {
-      "id": 212,
-      "code": "BSHM 131"
-    },
-    {
-      "id": 213,
-      "code": "BSHM 28"
-    },
-    {
-      "id": 214,
-      "code": "BSHM 151"
-    },
-    {
-      "id": 215,
-      "code": "BSHM 161"
-    },
-    {
-      "id": 216,
-      "code": "BSHM 100"
-    },
-    {
-      "id": 217,
-      "code": "BSHM 199-B"
-    },
-    {
-      "id": 218,
-      "code": "ALAN 1"
-    },
-    {
-      "id": 219,
-      "code": "ALAN 2"
-    },
-    {
-      "id": 220,
-      "code": "ALAN 21A"
-    },
-    {
-      "id": 221,
-      "code": "ALAN 22A"
-    },
-    {
-      "id": 222,
-      "code": "BPSY 50"
-    },
-    {
-      "id": 223,
-      "code": "BPSY 55"
-    },
-    {
-      "id": 224,
-      "code": "BPSY 65"
-    },
-    {
-      "id": 225,
-      "code": "BPSY 70"
-    },
-    {
-      "id": 226,
-      "code": "BPSY 95"
-    },
-    {
-      "id": 227,
-      "code": "BPSY 80"
-    },
-    {
-      "id": 228,
-      "code": "BPSY 85"
-    },
-    {
-      "id": 229,
-      "code": "BPSY 90"
-    },
-    {
-      "id": 230,
-      "code": "BPSY 75"
-    },
-    {
-      "id": 231,
-      "code": "BPSY 100"
-    },
-    {
-      "id": 232,
-      "code": "BPSY 101"
-    },
-    {
-      "id": 233,
-      "code": "BPSY 105"
-    },
-    {
-      "id": 234,
-      "code": "BPSY 110"
-    },
-    {
-      "id": 235,
-      "code": "BPSY 106"
-    },
-    {
-      "id": 236,
-      "code": "BPSY 197"
-    },
-    {
-      "id": 237,
-      "code": "BPSY 120"
-    },
-    {
-      "id": 238,
-      "code": "BPSY 198"
-    }
+    
+    {"id":1,"code":"GNED 01"},
+    {"id":2,"code":"GNED 02"},
+    {"id":3,"code":"GNED 03"},
+    {"id":4,"code":"GNED 04"},
+    {"id":5,"code":"GNED 05"},
+    {"id":6,"code":"GNED 06"},
+    {"id":7,"code":"GNED 07"},
+    {"id":8,"code":"GNED 08"},
+    {"id":9,"code":"GNED 09"},
+    {"id":10,"code":"GNED 10"},
+    {"id":11,"code":"GNED 11"},
+    {"id":12,"code":"GNED 12"},
+    {"id":13,"code":"GNED 13"},
+    {"id":14,"code":"GNED 14"},
+    {"id":15,"code":"GNED 15"},
+
+
+    {"id":16,"code":"COSC 50"},
+    {"id":17,"code":"COSC 55"},
+    {"id":18,"code":"COSC 60"},
+    {"id":19,"code":"COSC 65"},
+    {"id":20,"code":"COSC 70"},
+    {"id":21,"code":"COSC 75"},
+    {"id":22,"code":"COSC 80"},
+    {"id":23,"code":"COSC 85"},
+    {"id":24,"code":"COSC 90"},
+    {"id":25,"code":"COSC 95"},
+    {"id":26,"code":"COSC 100"},
+    {"id":27,"code":"COSC 101"},
+    {"id":28,"code":"COSC 105"},
+    {"id":29,"code":"COSC 106"},
+    {"id":30,"code":"COSC 110"},
+    {"id":31,"code":"COSC 111"},
+    {"id":32,"code":"COSC 200A"},
+    {"id":33,"code":"COSC 200B"},
+    {"id":34,"code":"COSC 199"},
+
+
+    {"id":35,"code":"DCIT 21"},
+    {"id":36,"code":"DCIT 22"},
+    {"id":37,"code":"DCIT 23"},
+    {"id":38,"code":"DCIT 24"},
+    {"id":39,"code":"DCIT 25"},
+    {"id":40,"code":"DCIT 26"},
+    {"id":41,"code":"DCIT 50"},
+    {"id":42,"code":"DCIT 55"},
+    {"id":43,"code":"DCIT 60"},
+    {"id":44,"code":"DCIT 65"},
+
+
+    {"id":45,"code":"ITEC 50"},
+    {"id":46,"code":"ITEC 55"},
+    {"id":47,"code":"ITEC 60"},
+    {"id":48,"code":"ITEC 65"},
+    {"id":49,"code":"ITEC 70"},
+    {"id":50,"code":"ITEC 75"},
+    {"id":51,"code":"ITEC 80"},
+    {"id":52,"code":"ITEC 85"},
+    {"id":53,"code":"ITEC 90"},
+    {"id":54,"code":"ITEC 95"},
+    {"id":55,"code":"ITEC 100"},
+    {"id":56,"code":"ITEC 101"},
+    {"id":57,"code":"ITEC 105"},
+    {"id":58,"code":"ITEC 106"},
+    {"id":59,"code":"ITEC 110"},
+    {"id":60,"code":"ITEC 111"},
+    {"id":61,"code":"ITEC 116"},
+    {"id":62,"code":"ITEC 199"},
+    {"id":64,"code":"ITEC 200A"},
+    {"id":65,"code":"ITEC 200B"},
+
+    {"id":66,"code":"EDUC 50"},
+    {"id":67,"code":"EDUC 55"},
+    {"id":68,"code":"EDUC 60"},
+    {"id":69,"code":"EDUC 65"},
+    {"id":70,"code":"EDUC 70"},
+    {"id":71,"code":"EDUC 75"},
+    {"id":72,"code":"EDUC 80"},
+    {"id":73,"code":"EDUC 85"},
+    {"id":74,"code":"EDUC 90"},
+    {"id":75,"code":"EDUC 95"},
+    {"id":76,"code":"EDUC 197"},
+    {"id":77,"code":"EDUC 198"},
+    {"id":78,"code":"EDUC 23"},
+
+
+    {"id":79,"code":"ECED 21"},
+    {"id":80,"code":"ECED 22"},
+    {"id":81,"code":"ECED 23"},
+    {"id":82,"code":"ECED 24"},
+    {"id":83,"code":"ECED 25"},
+    {"id":84,"code":"ECED 26"},
+    {"id":85,"code":"ECED 27"},
+    {"id":86,"code":"ECED 28"},
+    {"id":87,"code":"ECED 29"},
+    {"id":88,"code":"ECED 30"},
+    {"id":89,"code":"ECED 31"},
+    {"id":90,"code":"ECED 32"},
+    {"id":91,"code":"ECED 33"},
+    {"id":92,"code":"ECED 34"},
+    {"id":93,"code":"ECED 35"},
+    {"id":94,"code":"ECED 36"},
+    {"id":95,"code":"ECED 37"},
+    {"id":96,"code":"ECED 38"},
+    {"id":97,"code":"ECED 39"},
+    {"id":98,"code":"ECED 40"},
+    {"id":99,"code":"ECED 41"},
+    {"id":100,"code":"ECED 42"},
+
+
+    {"id":101,"code":"BSEM 21"},
+    {"id":102,"code":"BSEM 22"},
+    {"id":103,"code":"BSEM 23"},
+    {"id":104,"code":"BSEM 24"},
+    {"id":105,"code":"BSEM 25"},
+    {"id":106,"code":"BSEM 26"},
+    {"id":107,"code":"BSEM 27"},
+    {"id":108,"code":"BSEM 28"},
+    {"id":109,"code":"BSEM 29"},
+    {"id":110,"code":"BSEM 30"},
+    {"id":111,"code":"BSEM 31"},
+    {"id":112,"code":"BSEM 32"},
+    {"id":113,"code":"BSEM 33"},
+    {"id":114,"code":"BSEM 34"},
+    {"id":115,"code":"BSEM 35"},
+    {"id":116,"code":"BSEM 36"},
+    {"id":117,"code":"BSEM 37"},
+    {"id":118,"code":"BSEM 38"},
+    {"id":119,"code":"BSEM 39"},
+    {"id":120,"code":"BSEM 40"},
+
+
+    {"id":121,"code":"BSES 21"},
+    {"id":122,"code":"BSES 22"},
+    {"id":123,"code":"BSES 23"},
+    {"id":124,"code":"BSES 24"},
+    {"id":125,"code":"BSES 25"},
+    {"id":126,"code":"BSES 26"},
+    {"id":127,"code":"BSES 27"},
+    {"id":128,"code":"BSES 28"},
+    {"id":129,"code":"BSES 29"},
+    {"id":130,"code":"BSES 30"},
+    {"id":131,"code":"BSES 31"},
+    {"id":132,"code":"BSES 32"},
+    {"id":133,"code":"BSES 33"},
+    {"id":134,"code":"BSES 34"},
+    {"id":135,"code":"BSES 35"},
+    {"id":136,"code":"BSES 36"},
+    {"id":137,"code":"BSES 37"},
+    {"id":301,"code":"BSES 38"},
+    {"id":138,"code":"BSES 39"},
+    {"id":139,"code":"BSES 40"},
+
+
+    {"id":140,"code":"BSEE 21"},
+    {"id":141,"code":"BSEE 22"},
+    {"id":142,"code":"BSEE 23"},
+    {"id":143,"code":"BSEE 24"},
+    {"id":144,"code":"BSEE 25"},
+    {"id":145,"code":"BSEE 26"},
+    {"id":146,"code":"BSEE 27"},
+    {"id":147,"code":"BSEE 28"},
+    {"id":148,"code":"BSEE 29"},
+    {"id":149,"code":"BSEE 30"},
+    {"id":150,"code":"BSEE 31"},
+    {"id":151,"code":"BSEE 32"},
+    {"id":152,"code":"BSEE 33"},
+    {"id":153,"code":"BSEE 34"},
+    {"id":154,"code":"BSEE 35"},
+    {"id":155,"code":"BSEE 36"},
+    {"id":156,"code":"BSEE 37"},
+    {"id":157,"code":"BSEE 39"},
+    {"id":158,"code":"BSEE 40"},
+    {"id":159,"code":"BSEE 41"},
+    {"id":160,"code":"BSEE 110"},
+    {"id":161,"code":"BSEE 111"},
+
+
+    {"id":162,"code":"BPSY 50"},
+    {"id":163,"code":"BPSY 55"},
+    {"id":164,"code":"BPSY 60"},
+    {"id":165,"code":"BPSY 65"},
+    {"id":166,"code":"BPSY 70"},
+    {"id":167,"code":"BPSY 75"},
+    {"id":168,"code":"BPSY 80"},
+    {"id":169,"code":"BPSY 85"},
+    {"id":170,"code":"BPSY 90"},
+    {"id":171,"code":"BPSY 95"},
+    {"id":172,"code":"BPSY 100"},
+    {"id":173,"code":"BPSY 101"},
+    {"id":174,"code":"BPSY 105"},
+    {"id":175,"code":"BPSY 106"},
+    {"id":176,"code":"BPSY 110"},
+    {"id":177,"code":"BPSY 111"},
+    {"id":178,"code":"BPSY 115"},
+    {"id":179,"code":"BPSY 120"},
+    {"id":180,"code":"BPSY 197"},
+    {"id":181,"code":"BPSY 198"},
+
+
+    {"id":182,"code":"BSHM 21"},
+    {"id":183,"code":"BSHM 22"},
+    {"id":184,"code":"BSHM 23"},
+    {"id":185,"code":"BSHM 24"},
+    {"id":186,"code":"BSHM 26"},
+    {"id":187,"code":"BSHM 27"},
+    {"id":188,"code":"BSHM 28"},
+    {"id":189,"code":"BSHM 29"},
+    {"id":190,"code":"BSHM 50"},
+    {"id":191,"code":"BSHM 55"},
+    {"id":192,"code":"BSHM 60"},
+    {"id":193,"code":"BSHM 65"},
+    {"id":194,"code":"BSHM 70"},
+    {"id":195,"code":"BSHM 75"},
+    {"id":196,"code":"BSHM 80"},
+    {"id":197,"code":"BSHM 85"},
+    {"id":198,"code":"BSHM 90"},
+    {"id":199,"code":"BSHM 100"},
+    {"id":200,"code":"BSHM 111"},
+    {"id":201,"code":"BSHM 121"},
+    {"id":202,"code":"BSHM 131"},
+    {"id":203,"code":"BSHM 141"},
+    {"id":204,"code":"BSHM 151"},
+    {"id":205,"code":"BSHM 161"},
+    {"id":206,"code":"BSHM 199A"},
+    {"id":207,"code":"BSHM 199B"},
+
+
+    {"id":208,"code":"TOUR 21"},
+    {"id":209,"code":"TOUR 22"},
+    {"id":210,"code":"TOUR 23"},
+    {"id":211,"code":"TOUR 24"},
+    {"id":212,"code":"TOUR 25"},
+    {"id":213,"code":"TOUR 26"},
+    {"id":214,"code":"TOUR 27"},
+    {"id":215,"code":"TOUR 28"},
+    {"id":216,"code":"TOUR 50"},
+    {"id":217,"code":"TOUR 55"},
+    {"id":218,"code":"TOUR 60"},
+    {"id":219,"code":"TOUR 65"},
+    {"id":220,"code":"TOUR 70"},
+    {"id":221,"code":"TOUR 75"},
+    {"id":222,"code":"TOUR 80"},
+    {"id":223,"code":"TOUR 85"},
+    {"id":224,"code":"TOUR 90"},
+    {"id":225,"code":"TOUR 95"},
+    {"id":226,"code":"TOUR 101"},
+    {"id":227,"code":"TOUR 111"},
+    {"id":228,"code":"TOUR 121"},
+    {"id":229,"code":"TOUR 131"},
+    {"id":230,"code":"TOUR 141"},
+    {"id":231,"code":"TOUR 151"},
+    {"id":232,"code":"TOUR 161"},
+    {"id":233,"code":"TOUR 199A"},
+    {"id":234,"code":"TOUR 199B"},
+
+    {"id":235,"code":"BADM 21"},
+    {"id":236,"code":"BADM 22"},
+    {"id":237,"code":"BADM 23"},
+    {"id":238,"code":"BADM 24"},
+    {"id":239,"code":"BADM 25"},
+    {"id":240,"code":"BADM 26"},
+    {"id":241,"code":"BADM 27"},
+    {"id":242,"code":"BADM 199"},
+    {"id":243,"code":"BADM 200A"},
+    {"id":244,"code":"BADM 200B"},
+
+    {"id":245,"code":"HRMT 50"},
+    {"id":246,"code":"HRMT 55"},
+    {"id":247,"code":"HRMT 60"},
+    {"id":248,"code":"HRMT 65"},
+    {"id":249,"code":"HRMT 70"},
+    {"id":250,"code":"HRMT 75"},
+    {"id":251,"code":"HRMT 80"},
+    {"id":252,"code":"HRMT 85"},
+
+    {"id":253,"code":"MKTG 50"},
+    {"id":254,"code":"MKTG 55"},
+    {"id":255,"code":"MKTG 60"},
+    {"id":256,"code":"MKTG 65"},
+    {"id":257,"code":"MKTG 70"},
+    {"id":258,"code":"MKTG 75"},
+    {"id":259,"code":"MKTG 80"},
+    {"id":260,"code":"MKTG 85"},
+
+
+    {"id":261,"code":"FMGT 50"},
+    {"id":262,"code":"FMGT 55"},
+    {"id":263,"code":"FMGT 60"},
+    {"id":264,"code":"FMGT 65"},
+    {"id":265,"code":"FMGT 70"},
+    {"id":266,"code":"FMGT 75"},
+    {"id":267,"code":"FMGT 80"},
+    {"id":268,"code":"FMGT 85"},
+
+
+    {"id":269,"code":"ALAN 1"},
+    {"id":270,"code":"ALAN 2"},
+    {"id":271,"code":"ALAN 21A"},
+    {"id":272,"code":"ALAN 22A"},
+    {"id":273,"code":"ELAN 21"},
+
+
+    {"id":274,"code":"EDFS 21"},
+    {"id":275,"code":"EDFS 22"},
+    {"id":303,"code":"EDFS 23"},
+
+
+    {"id":276,"code":"NSTP 1"},
+    {"id":277,"code":"NSTP 2"},
+
+
+    {"id":278,"code":"PATHFIT 1"},
+    {"id":279,"code":"PATHFIT 2"},
+    {"id":280,"code":"PATHFIT 3"},
+    {"id":281,"code":"PATHFIT 4"},
+
+
+    {"id":282,"code":"MATH 1"},
+    {"id":283,"code":"MATH 2"},
+    {"id":284,"code":"MATH 3"},
+    {"id":285,"code":"MATH 4"},
+
+
+    {"id":286,"code":"ELEC 1"},
+    {"id":287,"code":"ELEC 2"},
+    {"id":288,"code":"ELEC 3"},
+    {"id":289,"code":"ELEC 4"},
+
+
+    {"id":290,"code":"INSY 50"},
+    {"id":291,"code":"INSY 55"},
+
+
+    {"id":292,"code":"ECON 23"},
+    {"id":293,"code":"ECON 24"},
+
+    {"id":302,"code":"TAXN 21"},
+
+    {"id":294,"code":"BIOL 5"},
+
+    {"id":295,"code":"ZOOL 1"},
+
+    {"id":296,"code":"CHGO 15"},
+
+    {"id":297,"code":"CHBH 13"},
+
+    {"id":298,"code":"ORNT 1"},
+
+    {"id":299,"code":"EDFS 23"},
+
+    {"id":300,"code":"STAT 2"}
   ]
 }
