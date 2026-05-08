@@ -29,11 +29,6 @@ plotly>=5.16.0
 # Progress bars
 tqdm>=4.66.0
 
-# OCR and image scanning
-opencv-python>=4.10.0
-pytesseract>=0.3.10
-rapidfuzz>=3.9.0
-
 # Testing
 pytest>=7.4.0
 requests>=2.31.0

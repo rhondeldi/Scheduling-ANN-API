@@ -11,9 +11,6 @@ python scripts/quick_start.py
 # Import existing schedules → Calculate fitness → Train → Visualize
 python scripts/workflow_manual_schedules.py
 
-# Scan schedule images to JSON (OCR)
-python scripts/image_schedule_scanner.py --help
-
 # Individual steps
 python scripts/import_existing_data.py                  # Import schedules
 python scripts/calculate_fitness_for_historical.py     # Calculate fitness
@@ -121,22 +118,7 @@ curl -X POST http://localhost:8000/predict/fitness \
   -d @examples/example_manual_schedule_format.json
 ```
 
-## Common Workflows
-
-### Workflow 0: Scan Manual Schedules from Images
-
-If your schedules are in photo/scan form, extract them to JSON first:
-
-```bash
-python scripts/image_schedule_scanner.py \
-    --images scans/BSPsych_1A_page1.jpg scans/BSPsych_1A_page2.jpg \
-    --department DAS --course BSPsych --year-level 1 --section A \
-    --semester 1 --year 2025 --schedule-id BSPsych_1A_2025_S1 \
-    --output data/manual_schedules_scanned.json
-```
-
-Then continue with the normal import workflow.
-Detailed setup and OCR notes: docs/IMAGE_SCANNER_GUIDE.md.
+## � Common Workflows
 
 ### Workflow 1: Using Existing Schedules (Recommended for Beginners)
 
