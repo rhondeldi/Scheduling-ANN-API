@@ -38,19 +38,13 @@ PHASE 2: DATA PREPARATION
 PHASE 3: MODEL DEVELOPMENT
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                                                                          │
-│  [5] Build Models               [6] Train Models                        │
+│  [5] Build Model                [6] Train Model                         │
 │      │                               │                                   │
 │      ├─ Fitness Predictor            ├─ Set callbacks                   │
 │      │  └─ 50 → 128 → 64 → 32 → 1   ├─ Early stopping                  │
 │      │                               ├─ Learning rate schedule          │
-│      ├─ Constraint Classifier        ├─ Model checkpointing             │
-│      │  └─ 50 → 256 → 128 → 64 → 10 └─ TensorBoard logging             │
-│      │                                                                   │
-│      ├─ Crossover Recommender                                           │
-│      │  └─ LSTM(128) → Dense(64) → Softmax                              │
-│      │                                                                   │
-│      └─ Mutation Predictor                                              │
-│         └─ 60 → 128 → 64 → 3                                            │
+│      │                               ├─ Model checkpointing             │
+│      │                               └─ TensorBoard logging             │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -87,9 +81,8 @@ PHASE 6: PRODUCTION USE
 │  [11] GA Integration            [12] Monitoring                         │
 │       │                               │                                  │
 │       ├─ Fitness prediction           ├─ Track performance              │
-│       ├─ Constraint checking          ├─ Log predictions                │
-│       ├─ Crossover guidance           ├─ Model drift detection          │
-│       └─ Mutation prediction          └─ Continuous improvement         │
+│       └─ Handle predictions           ├─ Log predictions                │
+│                                       └─ Model drift detection          │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -143,10 +136,8 @@ PHASE 6: PRODUCTION USE
 │   API Service      │
 │ (api_service.py)   │
 │                    │
-│  Endpoints:        │
+│  Endpoint:         │
 │  • /predict/fitness│
-│  • /predict/       │
-│    constraints     │
 └──────┬─────────────┘
        │
        │ 5. Predictions (HTTP)
@@ -252,14 +243,6 @@ python train_fitness_predictor.py
 - R² > 0.85
 - MAE < 5.0
 - Model saved to `models/fitness_predictor.h5`
-
-**Repeat for other models** (optional):
-
-```bash
-python train_constraint_classifier.py
-python train_crossover_recommender.py
-python train_mutation_predictor.py
-```
 
 ---
 

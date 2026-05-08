@@ -1,0 +1,25 @@
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Virtual environments
+.venv/
+.venv311/
+venv/
+
+# Build/distribution artifacts
+build/
+dist/
+*.egg-info/
+
+# Runtime logs and local outputs
+logs/
+*.log
+
+# Tooling/editor artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
