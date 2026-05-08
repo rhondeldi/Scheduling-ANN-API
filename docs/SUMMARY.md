@@ -12,14 +12,12 @@ I've created a complete **Artificial Neural Network (ANN) system** to assist you
 2. **[PROCESS_FLOW.md](PROCESS_FLOW.md)** - Step-by-step visual process flow and procedures
 3. **[README.md](README.md)** - Quick reference and usage guide
 
-### Core Implementation (6 files)
+### Core Implementation (4 files)
 
 1. **[config.py](config.py)** - Configuration settings and hyperparameters
 2. **[feature_extraction.py](feature_extraction.py)** - Extract 50+ features from schedules
-3. **[models.py](models.py)** - Neural network model definitions (4 models)
+3. **[models.py](models.py)** - Neural network model definition (fitness predictor)
 4. **[train_fitness_predictor.py](train_fitness_predictor.py)** - Training pipeline for fitness predictor
-5. **[api_service.py](api_service.py)** - FastAPI REST service for model serving
-6. **[data_collection.py](data_collection.py)** - Collect training data from GA runs
 
 ### Integration & Setup (3 files)
 
@@ -56,35 +54,14 @@ scheduling-ANN-model/
     └── logs/                          (Training logs)
 ```
 
-## 🧠 The 4 ANN Models
+## 🧠 The Fitness Predictor Model
 
-### 1. **Fitness Predictor** (Priority: HIGH)
+### **Fitness Predictor** (Priority: HIGH)
 
 - **Purpose**: Predict schedule fitness scores 100x faster than the standard fitness function
 - **Architecture**: 50 → 128 → 64 → 32 → 1
 - **Expected Speedup**: From 1ms to 0.01ms per evaluation
 - **Use Case**: Evaluate entire populations quickly during GA
-
-### 2. **Constraint Classifier** (Priority: MEDIUM)
-
-- **Purpose**: Predict which constraints a schedule violates
-- **Architecture**: 50 → 256 → 128 → 64 → 10
-- **Output**: 10 constraint types (instructor conflict, room conflict, lunch break, etc.)
-- **Use Case**: Pre-screen invalid schedules before full evaluation
-
-### 3. **Crossover Recommender** (Priority: LOW)
-
-- **Purpose**: Suggest optimal crossover points between parent schedules
-- **Architecture**: LSTM(128) → Dense(64) → Softmax
-- **Output**: Probability distribution over 144 time slots
-- **Use Case**: Intelligent crossover instead of random point selection
-
-### 4. **Mutation Predictor** (Priority: LOW)
-
-- **Purpose**: Predict if a mutation will improve/worsen fitness
-- **Architecture**: 60 → 128 → 64 → 3
-- **Output**: Improve (33%), Neutral (33%), Worsen (33%)
-- **Use Case**: Accept mutations more intelligently
 
 ## 🚀 How to Use This
 
