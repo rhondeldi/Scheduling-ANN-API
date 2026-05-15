@@ -51,45 +51,6 @@ feature_extractors: Dict[str, Any] = {}
 
 
 
-# ── feature-extractor helper ──────────────────────────────────────────────────
-# create_feature_extractors() does not always return a "mutation" key — what it
-# returns depends on the version of feature_extraction.py.  Every endpoint that
-# extracts schedule features (fitness, constraint, crossover, mutation) uses
-# the same kind of numerical-vector representation of a week schedule, so any
-# available extractor produces a usable feature vector.  This helper picks one
-# in order of preference and logs a warning when it falls back to a non-ideal
-# extractor.
-
-def _pick_schedule_extractor(preferred: str):
-    """Return (key, extractor) for the first available extractor.
-
-    Tries the caller's preferred key first, then falls back to fitness,
-    constraint, crossover, in that order.  Returns (None, None) if the
-    feature_extractors dict is empty.
-    """
-    candidates = [preferred, "fitness", "constraint", "crossover", "mutation"]
-    seen = set()
-    for key in candidates:
-        if key in seen:
-            continue
-        seen.add(key)
-        ext = feature_extractors.get(key)
-        if ext is not None:
-            if key != preferred:
-                logger.warning(
-                    f"feature_extractors[{preferred!r}] not available — "
-                    f"falling back to feature_extractors[{key!r}]"
-                )
-            return key, ext
-    return None, None
-
-MUTATION_TYPE_TO_ID = {
-    "swap": 1,
-    "move": 2,
-    "shift": 3,
-    "clear_day": 4,
-}
-
 # Required model keys and their human-readable names, in priority order.
 _REQUIRED_MODELS = [
     ("fitness",    "fitness_predictor"),
@@ -129,7 +90,11 @@ async def _load_models_and_scalers() -> None:
             models[key] = None
             continue
         try:
-            models[key] = keras.models.load_model(path)
+            # compile=False loads weights + architecture without rebuilding the
+            # training loss/optimiser.  The constraint classifier was trained
+            # with a custom weighted_bce closure that Keras can't deserialise
+            # at load time, and we're inference-only here — no need to compile.
+            models[key] = keras.models.load_model(path, compile=False)
             logger.info(f"✓ {key}: loaded from {path}")
         except Exception as exc:
             logger.error(f"✗ {key}: load failed — {exc}")
@@ -141,6 +106,7 @@ async def _load_models_and_scalers() -> None:
         ("fitness",   config.FITNESS_SCALER_PATH),
         ("constraint",config.CONSTRAINT_SCALER_PATH),
         ("mutation",  config.MUTATION_SCALER_PATH),
+        ("crossover", config.CROSSOVER_SCALER_PATH),
     ]
     for key, path in scaler_specs:
         if not os.path.exists(path):
@@ -175,7 +141,7 @@ async def _load_models_and_scalers() -> None:
             logger.error(f"#   [MISSING] {key:<11} predictor — endpoints using it will return 503")
 
     logger.info("# SCALERS:")
-    for key in ("features", "fitness", "constraint", "mutation"):
+    for key in ("features", "fitness", "constraint", "mutation", "crossover"):
         if scalers.get(key) is not None:
             logger.info(f"#   [OK]      {key:<11} scaler")
         else:
@@ -263,19 +229,30 @@ class CrossoverRecommendationRequest(BaseModel):
 
 
 class CrossoverRecommendationResponse(BaseModel):
-    recommended_points: List[int]
-    probabilities: List[float]
+    """Output of the crossover compatibility classifier.
+
+    `compatible` is the binary decision (True iff `probability >= 0.5`);
+    `probability` is the raw sigmoid output.  The model predicts whether
+    the GA should *attempt* crossover between these parents or skip them,
+    so callers should treat low probabilities as a signal to reroll the
+    parent selection instead of wasting a crossover attempt.
+    """
+
+    compatible: bool
+    probability: float
     processing_time_ms: float
 
 
 class MutationPredictionRequest(BaseModel):
-    current_schedule: ScheduleData
-    proposed_mutation: Dict[str, Any]
-    current_fitness: float
+    before_schedule: ScheduleData
+    after_schedule: ScheduleData
+    mutation_type: str
+    before_fitness: float
+    after_fitness: float
 
 
 class MutationPredictionResponse(BaseModel):
-    prediction: str  # 'improve', 'neutral', or 'worsen'
+    prediction: str
     confidence: float
     probabilities: Dict[str, float]
     processing_time_ms: float
@@ -291,6 +268,9 @@ class HealthResponse(BaseModel):
 
 def _elapsed_ms(start: datetime) -> float:
     return (datetime.now() - start).total_seconds() * 1000
+
+
+_MUTATION_LABELS = ["improve", "neutral", "worsen"]
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -495,6 +475,13 @@ async def check_constraints(request: ConstraintCheckRequest):
 
 @app.post("/recommend/crossover", response_model=CrossoverRecommendationResponse)
 async def recommend_crossover(request: CrossoverRecommendationRequest):
+    """Binary crossover-compatibility classifier.
+
+    Returns the predicted probability that crossing the two parent schedules
+    will produce a valid offspring with fitness above the training threshold.
+    GA callers should treat low probabilities as a hint to pick different
+    parents instead of attempting (and likely retrying) the crossover.
+    """
     start_time = datetime.now()
     logger.info(
         f"/recommend/crossover — parent1_fitness={request.parent1_fitness:.4f} "
@@ -503,22 +490,31 @@ async def recommend_crossover(request: CrossoverRecommendationRequest):
 
     if models.get("crossover") is None:
         raise HTTPException(status_code=503, detail="Crossover recommender model not loaded")
+    if feature_extractors.get("crossover") is None:
+        raise HTTPException(status_code=503, detail="Crossover feature extractor not loaded")
 
     try:
-        parent1_seq = np.array(request.parent1.week_schedule).reshape(1, -1, 3)
-        parent2_seq = np.array(request.parent2.week_schedule).reshape(1, -1, 3)
+        features = feature_extractors["crossover"].extract(
+            request.parent1.model_dump(),
+            request.parent2.model_dump(),
+            request.parent1_fitness,
+            request.parent2_fitness,
+        ).reshape(1, -1)
 
-        probabilities = models["crossover"].predict([parent1_seq, parent2_seq], verbose=0)[0]
-        top_indices = np.argsort(probabilities)[-5:][::-1]
-        top_probs = probabilities[top_indices]
+        if scalers.get("crossover") is not None:
+            features = scalers["crossover"].transform(features)
+
+        probability = float(models["crossover"].predict(features, verbose=0).reshape(-1)[0])
+        compatible = bool(probability >= 0.5)
         ms = _elapsed_ms(start_time)
+
         logger.info(
-            f"/recommend/crossover — top points: {top_indices.tolist()} "
-            f"probs: {[round(float(p),4) for p in top_probs]} ({ms:.1f} ms)"
+            f"/recommend/crossover — compatible={compatible} "
+            f"p={probability:.4f} ({ms:.1f} ms)"
         )
         return CrossoverRecommendationResponse(
-            recommended_points=top_indices.tolist(),
-            probabilities=top_probs.tolist(),
+            compatible=compatible,
+            probability=probability,
             processing_time_ms=ms,
         )
     except Exception as exc:
@@ -526,76 +522,47 @@ async def recommend_crossover(request: CrossoverRecommendationRequest):
         raise HTTPException(status_code=500, detail=f"Crossover recommendation failed: {exc}")
 
 
-# FIX 2: use feature_extractors["mutation"].extract(...) — not
-# feature_extractors["general"].extract_features(...).
-# "general" almost certainly doesn't exist in create_feature_extractors(),
-# causing a KeyError on every call. The method is also .extract(), not
-# .extract_features(), consistent with every other endpoint.
 @app.post("/predict/mutation", response_model=MutationPredictionResponse)
 async def predict_mutation(request: MutationPredictionRequest):
     start_time = datetime.now()
-    mut_type = request.proposed_mutation.get("type", "unknown")
-    mut_pos  = request.proposed_mutation.get("position", 0)
-    logger.info(
-        f"/predict/mutation — current_fitness={request.current_fitness:.4f} "
-        f"type={mut_type!r} position={mut_pos}"
-    )
 
     if models.get("mutation") is None:
         raise HTTPException(status_code=503, detail="Mutation predictor model not loaded")
+    if scalers.get("mutation") is None:
+        raise HTTPException(status_code=503, detail="Mutation scaler not loaded")
+    if feature_extractors.get("mutation") is None:
+        raise HTTPException(status_code=503, detail="Mutation feature extractor not loaded")
 
     try:
-        schedule_dict = request.current_schedule.model_dump()
+        features = feature_extractors["mutation"].extract(
+            request.before_schedule.model_dump(),
+            request.after_schedule.model_dump(),
+            request.mutation_type,
+            request.before_fitness,
+            request.after_fitness,
+        ).reshape(1, -1)
 
-        # FIX 3: create_feature_extractors() does not always return a
-        # "mutation" key, so previously this raised KeyError: 'mutation'.
-        # Use the helper so the endpoint works whichever extractors are
-        # actually loaded — they all produce equivalent schedule features
-        # for our purposes.
-        extractor_key, schedule_extractor = _pick_schedule_extractor("mutation")
-        if schedule_extractor is None:
-            raise HTTPException(
-                status_code=503,
-                detail="No schedule feature extractors loaded — startup likely failed",
+        features = scalers["mutation"].transform(features)
+        probs = models["mutation"].predict(features, verbose=0).reshape(-1)
+        if probs.size != len(_MUTATION_LABELS):
+            raise ValueError(
+                f"Mutation predictor returned {probs.size} outputs; expected {len(_MUTATION_LABELS)}"
             )
-        schedule_features = schedule_extractor.extract(schedule_dict)
 
-        mutation_type = request.proposed_mutation.get("type", 0)
-        if isinstance(mutation_type, str):
-            mutation_type = MUTATION_TYPE_TO_ID.get(mutation_type.lower(), 0)
-
-        mutation_features = np.array([
-            request.current_fitness,
-            mutation_type,
-            request.proposed_mutation.get("position", 0),
-        ], dtype=np.float32)
-
-        combined_features = np.concatenate([schedule_features, mutation_features])
-
-        expected_size = config.MUTATION_PREDICTOR_CONFIG["input_dim"]
-        if len(combined_features) < expected_size:
-            combined_features = np.pad(combined_features, (0, expected_size - len(combined_features)))
-        else:
-            combined_features = combined_features[:expected_size]
-
-        if scalers.get("mutation") is not None:
-            combined_features = scalers["mutation"].transform(combined_features.reshape(1, -1))[0]
-
-        predictions = models["mutation"].predict(combined_features.reshape(1, -1), verbose=0)[0]
-
-        class_names = ["improve", "neutral", "worsen"]
-        predicted_class = class_names[int(np.argmax(predictions))]
-        confidence = float(np.max(predictions))
-        probabilities = {n: float(p) for n, p in zip(class_names, predictions)}
+        idx = int(np.argmax(probs))
+        prediction = _MUTATION_LABELS[idx]
+        confidence = float(probs[idx])
+        probability_map = {
+            label: float(prob) for label, prob in zip(_MUTATION_LABELS, probs)
+        }
         ms = _elapsed_ms(start_time)
         logger.info(
-            f"/predict/mutation — prediction={predicted_class!r} confidence={confidence:.4f} "
-            f"probs={probabilities} ({ms:.1f} ms)"
+            f"/predict/mutation — prediction={prediction} conf={confidence:.4f} ({ms:.1f} ms)"
         )
         return MutationPredictionResponse(
-            prediction=predicted_class,
+            prediction=prediction,
             confidence=confidence,
-            probabilities=probabilities,
+            probabilities=probability_map,
             processing_time_ms=ms,
         )
     except Exception as exc:

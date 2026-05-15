@@ -38,7 +38,7 @@ class FitnessPredictorTrainer:
     """End-to-end trainer for the schedule fitness predictor ANN."""
 
     def __init__(self, data_path: str | None = None):
-        self.data_path        = Path(data_path) if data_path else PROJECT_ROOT / "data" / "training_data.json"
+        self.data_path        = Path(data_path) if data_path else PROJECT_ROOT / "data" / "training_output" /"training_data.json"
         self.feature_extractor = FitnessFeatureExtractor()
         self.scaler_X          = StandardScaler()
         self.scaler_y          = StandardScaler()

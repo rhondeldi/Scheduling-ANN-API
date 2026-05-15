@@ -257,13 +257,379 @@ class FitnessFeatureExtractor:
 
 
 class ConstraintFeatureExtractor:
-    """Feature extractor used by the constraint classifier."""
+    """29-feature extractor for the constraint classifier.
+
+    Layout
+    ──────
+    Group 1 — Per-section soft constraint features (24)
+      For each of 6 days (4 × 6 = 24):
+        [has_lunch_free, late_class_count, daily_hours, is_saturday_overload]
+
+    Group 2 — Cross-section conflict aggregates (5)
+        [total_instructor_conflicts,
+         total_room_conflicts,
+         max_instructor_conflicts_in_one_slot,
+         max_room_conflicts_in_one_slot,
+         slots_with_any_conflict]
+    """
+
+    EXPECTED_DIM = 29
+    SAT_OVERLOAD_HOURS = 5.0
 
     def __init__(self):
-        self._extractor = ScheduleFeatureExtractor()
+        self.n_days = config.N_WEEKLY_SCHOOL_DAYS
+        self.n_slots = config.N_DAILY_TIME_SLOTS
+        self._parser = ScheduleFeatureExtractor()
 
-    def extract(self, schedule_data: Dict) -> np.ndarray:
-        return self._extractor.extract_features(schedule_data)
+    CROSS_AGGREGATE_KEYS = (
+        "total_instructor_conflicts",
+        "total_room_conflicts",
+        "max_instructor_conflicts_in_one_slot",
+        "max_room_conflicts_in_one_slot",
+        "slots_with_any_conflict",
+    )
+
+    # ── public API ────────────────────────────────────────────────────────────
+    def extract(
+        self,
+        schedule_data: Any,
+        full_uni_schedule: Any = None,
+        cross_aggregates: Any = None,
+    ) -> np.ndarray:
+        """Build the 29-feature vector.
+
+        Args:
+            schedule_data: the target section — either a dict
+                {"week_schedule": [...]}, {"section_schedule": [...]},
+                {"schedule": [...]}, or a raw [6][24][3] array.
+            full_uni_schedule: optional iterable of other sections. Used
+                only when `cross_aggregates` is not supplied.
+            cross_aggregates: optional dict of precomputed cross-section
+                conflict counts (the five fields in CROSS_AGGREGATE_KEYS).
+                When present, takes precedence over `full_uni_schedule` —
+                the Go data collector emits these directly to keep the
+                JSONL compact.
+
+        Cross-section features are zeroed when neither source is given.
+        """
+        section = self._coerce(schedule_data)
+
+        soft = self._soft_features(section)
+        if cross_aggregates is not None:
+            cross = self._cross_from_aggregates(cross_aggregates)
+        else:
+            cross = self._cross_section_features(section, full_uni_schedule)
+
+        arr = np.asarray(soft + cross, dtype=np.float32)
+        assert arr.shape[0] == self.EXPECTED_DIM, (
+            f"Constraint feature dim {arr.shape[0]} != {self.EXPECTED_DIM}"
+        )
+        return arr
+
+    # ── precomputed aggregates path ───────────────────────────────────────────
+    def _cross_from_aggregates(self, agg: Any) -> List[float]:
+        if not isinstance(agg, dict):
+            return [0.0] * 5
+        out: List[float] = []
+        for key in self.CROSS_AGGREGATE_KEYS:
+            val = agg.get(key, 0)
+            try:
+                out.append(float(val))
+            except (TypeError, ValueError):
+                out.append(0.0)
+        return out
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+    def _coerce(self, data: Any) -> np.ndarray:
+        """Normalize one section schedule to a (n_days, n_slots, 3) int array."""
+        if isinstance(data, np.ndarray) and data.ndim == 3:
+            return data.astype(np.int32)
+        if isinstance(data, dict):
+            for key in ("section_schedule", "week_schedule", "schedule"):
+                if key in data and data[key] is not None:
+                    return self._parser._parse_schedule({"week_schedule": data[key]})
+            return self._parser._parse_schedule(data)
+        if isinstance(data, list):
+            return self._parser._parse_schedule({"week_schedule": data})
+        return np.zeros((self.n_days, self.n_slots, 3), dtype=np.int32)
+
+    def _soft_features(self, section: np.ndarray) -> List[float]:
+        feats: List[float] = []
+        for d in range(self.n_days):
+            subj = section[d, :, 0]
+            has_lunch = float(np.any(subj[LUNCH_START:LUNCH_END + 1] == 0))
+            late_count = float(np.sum(subj[LATE_SLOT:] > 0))
+            daily_hours = float(np.sum(subj > 0)) / config.N_HOUR_TIME_SLOTS
+            is_sat_overload = float(
+                d == SAT_DAY and daily_hours > self.SAT_OVERLOAD_HOURS
+            )
+            feats.extend([has_lunch, late_count, daily_hours, is_sat_overload])
+        return feats
+
+    def _cross_section_features(
+        self,
+        section: np.ndarray,
+        full_uni_schedule: Any,
+    ) -> List[float]:
+        if not full_uni_schedule:
+            return [0.0, 0.0, 0.0, 0.0, 0.0]
+
+        # Coerce + filter out any section identical to the target (so we don't
+        # count it as a conflict against itself).
+        others: List[np.ndarray] = []
+        for raw in full_uni_schedule:
+            try:
+                arr = self._coerce(raw)
+            except Exception:
+                continue
+            if arr.shape != section.shape:
+                continue
+            if np.array_equal(arr, section):
+                continue
+            others.append(arr)
+
+        if not others:
+            return [0.0, 0.0, 0.0, 0.0, 0.0]
+
+        stacked = np.stack(others, axis=0)  # (n_other, n_days, n_slots, 3)
+        other_subj = stacked[..., 0]
+        other_instr = stacked[..., 1]
+        other_room = stacked[..., 2]
+        # Only count slots where the other section is actually occupied.
+        other_occupied = other_subj > 0
+
+        sec_subj = section[..., 0]
+        sec_instr = section[..., 1]
+        sec_room = section[..., 2]
+        target_occupied = sec_subj > 0  # (n_days, n_slots)
+
+        # broadcast: compare each other section against target slot-by-slot
+        instr_match = (other_instr == sec_instr[None, ...]) & (sec_instr[None, ...] > 0) & other_occupied
+        room_match = (other_room == sec_room[None, ...]) & (sec_room[None, ...] > 0) & other_occupied
+
+        # only meaningful where the target itself is occupied
+        instr_match &= target_occupied[None, ...]
+        room_match &= target_occupied[None, ...]
+
+        # Per-slot counts (sum across other sections)
+        per_slot_instr = instr_match.sum(axis=0)  # (n_days, n_slots)
+        per_slot_room = room_match.sum(axis=0)
+
+        total_instr = int(per_slot_instr.sum())
+        total_room = int(per_slot_room.sum())
+        max_instr = int(per_slot_instr.max(initial=0))
+        max_room = int(per_slot_room.max(initial=0))
+        slots_with_any = int(np.sum((per_slot_instr + per_slot_room) > 0))
+
+        return [
+            float(total_instr),
+            float(total_room),
+            float(max_instr),
+            float(max_room),
+            float(slots_with_any),
+        ]
+
+
+class CrossoverFeatureExtractor:
+    """23-feature extractor for the crossover compatibility classifier.
+
+    Layout
+    ──────
+      [parent1_fitness, parent2_fitness]                           (2)
+      [fitness_diff (p1 - p2), fitness_avg]                        (2)
+      [matching_slot_count, matching_ratio, occupied_slot_overlap] (3)
+      Per parent (6 features each, 12 total):
+        [days_with_class, total_hours, has_saturday_classes,
+         lunch_break_days, late_class_count, days_over_preferred_hours]
+      Structural deltas (p1 - p2):                                  (4)
+        [days_with_class_diff, total_hours_diff,
+         lunch_break_days_diff, late_class_diff]
+    """
+
+    EXPECTED_DIM = 23
+    PREFERRED_MAX_HOURS = 10.0
+
+    def __init__(self):
+        self.n_days = config.N_WEEKLY_SCHOOL_DAYS
+        self.n_slots = config.N_DAILY_TIME_SLOTS
+        self._sat_day = SAT_DAY
+        self._lunch_start = LUNCH_START
+        self._lunch_end_excl = LUNCH_END + 1
+        self._late_start = LATE_SLOT
+        self._parser = ScheduleFeatureExtractor()
+
+    # ── public API ────────────────────────────────────────────────────────────
+    def extract(
+        self,
+        parent1: Any,
+        parent2: Any,
+        parent1_fitness: float,
+        parent2_fitness: float,
+    ) -> np.ndarray:
+        p1 = self._coerce(parent1)
+        p2 = self._coerce(parent2)
+        p1f = float(parent1_fitness)
+        p2f = float(parent2_fitness)
+
+        feats: List[float] = [p1f, p2f, p1f - p2f, 0.5 * (p1f + p2f)]
+        feats.extend(self._similarity_features(p1, p2))
+
+        s1 = self._parent_structural(p1)
+        s2 = self._parent_structural(p2)
+        feats.extend(s1)
+        feats.extend(s2)
+        feats.extend([s1[0] - s2[0], s1[1] - s2[1], s1[3] - s2[3], s1[4] - s2[4]])
+
+        arr = np.asarray(feats, dtype=np.float32)
+        assert arr.shape[0] == self.EXPECTED_DIM, (
+            f"Crossover feature dim {arr.shape[0]} != {self.EXPECTED_DIM}"
+        )
+        return arr
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+    def _coerce(self, data: Any) -> np.ndarray:
+        if isinstance(data, np.ndarray) and data.ndim == 3:
+            return data.astype(np.int32)
+        if isinstance(data, dict):
+            for key in ("week_schedule", "section_schedule", "schedule"):
+                if key in data and data[key] is not None:
+                    return self._parser._parse_schedule({"week_schedule": data[key]})
+            return self._parser._parse_schedule(data)
+        if isinstance(data, list):
+            return self._parser._parse_schedule({"week_schedule": data})
+        return np.zeros((self.n_days, self.n_slots, 3), dtype=np.int32)
+
+    def _similarity_features(self, p1: np.ndarray, p2: np.ndarray) -> List[float]:
+        s1 = p1[:, :, 0]
+        s2 = p2[:, :, 0]
+        occ1 = s1 > 0
+        occ2 = s2 > 0
+
+        matching = int(np.sum((s1 == s2) & occ1 & occ2))
+        overlap = int(np.sum(occ1 & occ2))
+        union_occupied = int(np.sum(occ1 | occ2))
+
+        ratio = (float(matching) / float(union_occupied)) if union_occupied > 0 else 0.0
+        return [float(matching), ratio, float(overlap)]
+
+    def _parent_structural(self, sched: np.ndarray) -> List[float]:
+        subj = sched[:, :, 0]
+        occ = subj > 0
+        days_with_class = float(np.sum(np.any(occ, axis=1)))
+        total_hours = float(np.sum(occ)) / float(config.N_HOUR_TIME_SLOTS)
+        has_saturday = float(np.any(occ[self._sat_day]))
+
+        lunch_break_days = 0
+        for d in range(self.n_days):
+            if np.any(subj[d, self._lunch_start:self._lunch_end_excl] == 0):
+                lunch_break_days += 1
+
+        late_class_count = float(np.sum(subj[:, self._late_start:] > 0))
+
+        hours_per_day = np.sum(occ, axis=1) / float(config.N_HOUR_TIME_SLOTS)
+        days_over_preferred = float(np.sum(hours_per_day > self.PREFERRED_MAX_HOURS))
+
+        return [
+            days_with_class,
+            total_hours,
+            has_saturday,
+            float(lunch_break_days),
+            late_class_count,
+            days_over_preferred,
+        ]
+
+
+class MutationFeatureExtractor:
+    """41-feature delta extractor for the mutation impact classifier."""
+
+    EXPECTED_DIM = 41
+    MUTATION_TYPES = [
+        "day_swap_timeslots",
+        "subject_day_swap",
+        "slot_nudge",
+        "slot_day_nudge",
+    ]
+    MUTATION_TYPE_TO_IDX = {t: i for i, t in enumerate(MUTATION_TYPES)}
+
+    def __init__(self):
+        self.n_days = config.N_WEEKLY_SCHOOL_DAYS
+        self.n_slots = config.N_DAILY_TIME_SLOTS
+        self._parser = ScheduleFeatureExtractor()
+
+    def extract(
+        self,
+        before: Any,
+        after: Any,
+        mutation_type: str,
+        before_fitness: float,
+        after_fitness: float,
+    ) -> np.ndarray:
+        b = self._coerce(before)
+        a = self._coerce(after)
+        mtype = str(mutation_type or "").lower()
+
+        feats: List[float] = []
+
+        one_hot = [0.0] * len(self.MUTATION_TYPES)
+        idx = self.MUTATION_TYPE_TO_IDX.get(mtype)
+        if idx is not None:
+            one_hot[idx] = 1.0
+        feats.extend(one_hot)
+
+        b_fit = float(before_fitness)
+        a_fit = float(after_fitness)
+        feats.extend([b_fit, a_fit, a_fit - b_fit])
+
+        for d in range(self.n_days):
+            feats.extend([
+                self._has_lunch(b[d]),
+                self._has_lunch(a[d]),
+                self._has_late_class(b[d]),
+                self._has_late_class(a[d]),
+            ])
+
+        for d in range(self.n_days):
+            feats.append(self._daily_hours(a[d]) - self._daily_hours(b[d]))
+
+        feats.extend([
+            self._days_with_class(b),
+            self._days_with_class(a),
+        ])
+
+        feats.extend([
+            self._daily_hours(b[SAT_DAY]),
+            self._daily_hours(a[SAT_DAY]),
+        ])
+
+        arr = np.asarray(feats, dtype=np.float32)
+        assert arr.shape[0] == self.EXPECTED_DIM, (
+            f"Mutation feature dim {arr.shape[0]} != {self.EXPECTED_DIM}"
+        )
+        return arr
+
+    def _coerce(self, data: Any) -> np.ndarray:
+        if isinstance(data, np.ndarray) and data.ndim == 3:
+            return data.astype(np.int32)
+        if isinstance(data, dict):
+            for key in ("week_schedule", "section_schedule", "schedule"):
+                if key in data and data[key] is not None:
+                    return self._parser._parse_schedule({"week_schedule": data[key]})
+            return self._parser._parse_schedule(data)
+        if isinstance(data, list):
+            return self._parser._parse_schedule({"week_schedule": data})
+        return np.zeros((self.n_days, self.n_slots, 3), dtype=np.int32)
+
+    def _has_lunch(self, day: np.ndarray) -> float:
+        return float(np.any(day[LUNCH_START:LUNCH_END + 1, 0] == 0))
+
+    def _has_late_class(self, day: np.ndarray) -> float:
+        return float(np.any(day[LATE_SLOT:, 0] > 0))
+
+    def _daily_hours(self, day: np.ndarray) -> float:
+        return float(np.sum(day[:, 0] > 0)) / config.N_HOUR_TIME_SLOTS
+
+    def _days_with_class(self, sched: np.ndarray) -> float:
+        return float(np.sum(np.any(sched[:, :, 0] > 0, axis=1)))
 
 
 def create_feature_extractors():
@@ -271,6 +637,8 @@ def create_feature_extractors():
     return {
         'fitness': FitnessFeatureExtractor(),
         'constraint': ConstraintFeatureExtractor(),
+        'crossover': CrossoverFeatureExtractor(),
+        'mutation': MutationFeatureExtractor(),
         'general': ScheduleFeatureExtractor(),
     }
 
