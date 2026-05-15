@@ -1,28 +1,56 @@
 """
 Training script for the Crossover Recommender model.
 
+The model is a binary classifier that predicts whether a (parent1, parent2)
+pair is *compatible* for crossover — i.e. whether crossing them will produce
+a valid offspring with fitness above ``CROSSOVER_RECOMMENDER_CONFIG['fitness_threshold']``.
+
+The GA uses this prediction to skip incompatible parent pairs instead of
+retrying crossover up to 384 times.
+
+Supported input formats:
+  1. JSONL, one record per line, with keys:
+        parent1            : [6][24][3] int array
+        parent2            : [6][24][3] int array
+        produced_valid     : 1 if crossover succeeded, 0 otherwise
+        offspring_fitness  : float (0.0 if produced_valid == 0)
+     Optional parent fitness fields: parent1_fitness, parent2_fitness.
+  2. JSON dict {"schedules": [...]} where each record carries the same
+     parent arrays plus an `offspring_fitness` (and usually a
+     `metadata.parent{1,2}_fitness`). `produced_valid` is inferred as
+     `offspring_fitness > 0` when absent.
+
 Usage:
     python scripts/train_crossover_recommender.py
     python scripts/train_crossover_recommender.py data/crossover_data.json
+    python scripts/train_crossover_recommender.py data/crossover_data.jsonl
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
-from collections import Counter
 from pathlib import Path
 
+import joblib
+import matplotlib
 import numpy as np
-from sklearn.metrics import top_k_accuracy_score
-from sklearn.model_selection import train_test_split
-from tensorflow import keras
-import argparse
 import tensorflow as tf
+from sklearn.metrics import (
+    confusion_matrix,
+    classification_report,
+    roc_auc_score,
+)
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow import keras
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-    # ensure `src` package modules that use bare imports (e.g. `import config`) are importable
     src_path = PROJECT_ROOT / "src"
     if str(src_path) not in sys.path:
         sys.path.insert(0, str(src_path))
@@ -31,10 +59,245 @@ import src.config as config
 from src.models import CrossoverRecommenderModel
 
 
+# ── Schedule constants ───────────────────────────────────────────────────────
+N_DAYS = config.N_WEEKLY_SCHOOL_DAYS        # 6
+N_SLOTS = config.N_DAILY_TIME_SLOTS         # 24
+SATURDAY_IDX = N_DAYS - 1
+LUNCH_RANGE = range(8, 12)                  # slots 8..11 inclusive
+LATE_THRESHOLD = 20
+PREFERRED_MAX_HOURS = 10.0
+
+EXPECTED_FEATURE_DIM = 23
+
+# Targets
+AUC_TARGET = 0.75
+ACC_TARGET = 0.70
+
+# Scaler is helpful here because some features (fitnesses, slot counts) live on
+# very different scales; reuse the project's mutation scaler path for a sibling.
+SCALER_PATH = config.MODELS_DIR / "crossover_scaler.joblib"
+
+
+# ── Schedule parsing ─────────────────────────────────────────────────────────
+def _as_grid(sched) -> np.ndarray:
+    """Coerce input to a (N_DAYS, N_SLOTS, 3) int array. Returns None on bad shape."""
+    if isinstance(sched, dict):
+        sched = sched.get("week_schedule") or sched.get("schedule") or sched
+    arr = np.asarray(sched, dtype=np.int32)
+    if arr.ndim != 3 or arr.shape[0] != N_DAYS or arr.shape[1] != N_SLOTS or arr.shape[2] < 3:
+        return None
+    return arr[:, :, :3]
+
+
+# ── Per-parent structural features ──────────────────────────────────────────
+def _days_with_class(sched: np.ndarray) -> float:
+    return float(np.sum(np.any(sched[:, :, 0] > 0, axis=1)))
+
+
+def _total_hours(sched: np.ndarray) -> float:
+    return float(np.sum(sched[:, :, 0] > 0)) / float(config.N_HOUR_TIME_SLOTS)
+
+
+def _has_saturday_classes(sched: np.ndarray) -> float:
+    return float(np.any(sched[SATURDAY_IDX, :, 0] > 0))
+
+
+def _lunch_break_days(sched: np.ndarray) -> float:
+    """Number of days that have at least one free slot in [8,11]."""
+    count = 0
+    for d in range(N_DAYS):
+        subj = sched[d, :, 0]
+        if np.any(subj[LUNCH_RANGE.start:LUNCH_RANGE.stop] == 0):
+            count += 1
+    return float(count)
+
+
+def _late_class_count(sched: np.ndarray) -> float:
+    return float(np.sum(sched[:, LATE_THRESHOLD:, 0] > 0))
+
+
+def _days_over_preferred_hours(sched: np.ndarray) -> float:
+    """Count of days whose occupied-slot hours exceed PREFERRED_MAX_HOURS."""
+    hours_per_day = np.sum(sched[:, :, 0] > 0, axis=1) / float(config.N_HOUR_TIME_SLOTS)
+    return float(np.sum(hours_per_day > PREFERRED_MAX_HOURS))
+
+
+def _parent_structural(sched: np.ndarray) -> list[float]:
+    return [
+        _days_with_class(sched),
+        _total_hours(sched),
+        _has_saturday_classes(sched),
+        _lunch_break_days(sched),
+        _late_class_count(sched),
+        _days_over_preferred_hours(sched),
+    ]
+
+
+# ── Pair-level features ─────────────────────────────────────────────────────
+def _similarity_features(p1: np.ndarray, p2: np.ndarray) -> list[float]:
+    """matching_slot_count, matching_ratio, occupied_slot_overlap."""
+    s1 = p1[:, :, 0]
+    s2 = p2[:, :, 0]
+    occ1 = s1 > 0
+    occ2 = s2 > 0
+
+    matching = int(np.sum((s1 == s2) & occ1 & occ2))        # same non-zero subject
+    overlap = int(np.sum(occ1 & occ2))                       # both occupied
+    union_occupied = int(np.sum(occ1 | occ2))                # either occupied
+
+    ratio = float(matching) / float(union_occupied) if union_occupied > 0 else 0.0
+    return [float(matching), ratio, float(overlap)]
+
+
+def extract_pair_features(
+    p1: np.ndarray,
+    p2: np.ndarray,
+    p1_fitness: float,
+    p2_fitness: float,
+) -> np.ndarray:
+    """Return the 23-dim compatibility feature vector for one pair."""
+    feats: list[float] = []
+
+    # 1. Individual fitnesses (2)
+    feats.extend([p1_fitness, p2_fitness])
+
+    # 2. Fitness relationship (2)
+    feats.extend([
+        p1_fitness - p2_fitness,         # signed difference; the model can square it if it wants
+        0.5 * (p1_fitness + p2_fitness),
+    ])
+
+    # 3. Schedule similarity (3)
+    feats.extend(_similarity_features(p1, p2))
+
+    # 4. Per-parent structural features (12)
+    s1 = _parent_structural(p1)
+    s2 = _parent_structural(p2)
+    feats.extend(s1)
+    feats.extend(s2)
+
+    # 5. Structural compatibility deltas (4)
+    feats.extend([
+        s1[0] - s2[0],   # days_with_class
+        s1[1] - s2[1],   # total_hours
+        s1[3] - s2[3],   # lunch_break_days
+        s1[4] - s2[4],   # late_class_count
+    ])
+
+    vec = np.asarray(feats, dtype=np.float32)
+    assert vec.shape[0] == EXPECTED_FEATURE_DIM, (
+        f"feature dim {vec.shape[0]} != {EXPECTED_FEATURE_DIM}"
+    )
+    return vec
+
+
+# ── Data loading ────────────────────────────────────────────────────────────
+def _iter_records(path: Path):
+    text = path.read_text(encoding="utf-8-sig").strip()
+    if not text:
+        return
+    if path.suffix.lower() == ".jsonl":
+        for line in text.splitlines():
+            line = line.strip()
+            if line:
+                yield json.loads(line)
+        return
+    doc = json.loads(text)
+    if isinstance(doc, list):
+        yield from doc
+    elif isinstance(doc, dict):
+        yield from (doc.get("schedules") or doc.get("data") or [])
+    else:
+        raise ValueError(f"Unsupported top-level JSON type in {path}")
+
+
+def _record_fitness(rec: dict, key: str) -> float | None:
+    """Read a parent fitness from the top-level record or its metadata."""
+    if key in rec and rec[key] is not None:
+        return float(rec[key])
+    meta = rec.get("metadata") or {}
+    if key in meta and meta[key] is not None:
+        return float(meta[key])
+    return None
+
+
+def _label_from_record(
+    rec: dict, fitness_threshold: float
+) -> tuple[int, float] | None:
+    """Returns (label, offspring_fitness) or None if the record is unlabelable."""
+    off_fit = rec.get("offspring_fitness")
+    produced_valid = rec.get("produced_valid")
+
+    if produced_valid is None and off_fit is None:
+        return None
+
+    off_fit = float(off_fit) if off_fit is not None else 0.0
+    if produced_valid is None:
+        # legacy data: infer from fitness
+        produced_valid = 1 if off_fit > 0.0 else 0
+
+    label = 1 if (int(produced_valid) == 1 and off_fit >= fitness_threshold) else 0
+    return label, off_fit
+
+
+def _plot_training_curves(
+    history: keras.callbacks.History | None,
+    out_path: Path,
+    title: str,
+    metrics: list[str],
+):
+    if history is None:
+        print("No training history; skipping plot.")
+        return
+    hist = history.history or {}
+    if not hist:
+        print("Empty training history; skipping plot.")
+        return
+
+    series = ["loss"] + [m for m in metrics if m in hist]
+    if not series:
+        print("No metrics found in history; skipping plot.")
+        return
+
+    n = len(series)
+    cols = 2 if n > 1 else 1
+    rows = (n + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 4 * rows), squeeze=False)
+
+    for idx, metric in enumerate(series):
+        ax = axes[idx // cols][idx % cols]
+        epochs = range(1, len(hist[metric]) + 1)
+        ax.plot(epochs, hist[metric], label="train")
+        val_key = f"val_{metric}"
+        if val_key in hist:
+            ax.plot(epochs, hist[val_key], label="val")
+        ax.set_title(metric.replace("_", " ").title())
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(metric)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+    for idx in range(n, rows * cols):
+        fig.delaxes(axes[idx // cols][idx % cols])
+
+    fig.suptitle(title)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved training curves -> {out_path}")
+
+
+# ── Trainer ─────────────────────────────────────────────────────────────────
 class CrossoverRecommenderTrainer:
     def __init__(self, data_path: str | None = None):
-        self.data_path = Path(data_path) if data_path else PROJECT_ROOT / "data" / "crossover_data.json"
-        self.model = None
+        self.data_path = (
+            Path(data_path)
+            if data_path
+            else PROJECT_ROOT / "data" / "crossover_data.json"
+        )
+        self.scaler = StandardScaler()
+        self.model: keras.Model | None = None
         self.history = None
 
         np.random.seed(config.RANDOM_SEED)
@@ -44,315 +307,215 @@ class CrossoverRecommenderTrainer:
         if not self.data_path.exists():
             raise FileNotFoundError(f"Crossover data not found at {self.data_path}")
 
-        raw = json.loads(self.data_path.read_text(encoding="utf-8-sig"))
-        samples = raw.get("schedules", raw.get("data", raw)) if isinstance(raw, dict) else raw
-        if not isinstance(samples, list) or not samples:
-            raise ValueError(f"No samples found in {self.data_path}")
+        cfg = config.CROSSOVER_RECOMMENDER_CONFIG
+        threshold = float(cfg.get("fitness_threshold", 5.0))
 
-        def normalize_week_schedule(item):
-            """Normalize various week_schedule representations into an (N,3) float32 array.
+        X: list[np.ndarray] = []
+        y: list[int] = []
+        skipped = 0
+        missing_fitness = 0
 
-            Accepts:
-            - nested 6x24x3 lists (rows of slots)
-            - flat list of numbers (multiple of 3)
-            - list of triplet lists or list of dicts (will extract numeric values)
-            Returns None if it cannot produce a valid (N,3) array.
-            """
-            # unwrap common dict wrappers
-            if isinstance(item, dict):
-                for key in ("week_schedule", "weekSchedule", "schedule", "week"):
-                    if key in item:
-                        item = item[key]
-                        break
-                else:
-                    # try to find a list-valued field
-                    for v in item.values():
-                        if isinstance(v, list):
-                            item = v
-                            break
-
-            def gather_triplets(obj):
-                """Yield triplet-like lists found anywhere inside obj."""
-                if obj is None:
-                    return
-                if isinstance(obj, (list, tuple)):
-                    # flat numeric list -> split into triplets
-                    if all(isinstance(x, (int, float)) for x in obj):
-                        arr = list(obj)
-                        if len(arr) % 3 != 0:
-                            return
-                        for i in range(0, len(arr), 3):
-                            yield [arr[i], arr[i + 1], arr[i + 2]]
-                        return
-
-                    # list of lists/tuples/dicts: recurse
-                    for elem in obj:
-                        if isinstance(elem, (list, tuple)):
-                            # if elem itself looks like a triplet of numbers
-                            if len(elem) == 3 and all(isinstance(x, (int, float)) for x in elem):
-                                yield [float(elem[0]), float(elem[1]), float(elem[2])]
-                            else:
-                                for t in gather_triplets(elem):
-                                    yield t
-                        elif isinstance(elem, dict):
-                            # try numeric keys or named keys
-                            if all(k in elem for k in ("day", "slot", "subject")):
-                                yield [float(elem.get("day", 0)), float(elem.get("slot", 0)), float(elem.get("subject", 0))]
-                            else:
-                                # try values order
-                                vals = list(elem.values())
-                                if len(vals) >= 3 and all(isinstance(x, (int, float)) for x in vals[:3]):
-                                    yield [float(vals[0]), float(vals[1]), float(vals[2])]
-                                else:
-                                    for t in gather_triplets(vals):
-                                        yield t
-                        else:
-                            # non-list scalar – can't form triplet here
-                            continue
-                elif isinstance(obj, dict):
-                    for v in obj.values():
-                        for t in gather_triplets(v):
-                            yield t
-
-            triplets = list(gather_triplets(item))
-            if not triplets:
-                return None
-            try:
-                arr = np.asarray(triplets, dtype=np.float32)
-                if arr.ndim != 2 or arr.shape[1] != 3:
-                    return None
-                # enforce canonical length (144 slots = 6 days * 24 slots)
-                TARGET_LEN = 144
-                if arr.shape[0] < TARGET_LEN:
-                    pad_rows = TARGET_LEN - arr.shape[0]
-                    pad = np.zeros((pad_rows, 3), dtype=np.float32)
-                    arr = np.vstack([arr, pad])
-                elif arr.shape[0] > TARGET_LEN:
-                    arr = arr[:TARGET_LEN]
-                return arr
-            except Exception:
-                return None
-
-        parent1 = []
-        parent2 = []
-        labels = []
-
-        for idx, sample in enumerate(samples):
-            p1_item = sample.get("parent1")
-            p2_item = sample.get("parent2")
-            try:
-                p1 = normalize_week_schedule(p1_item)
-                p2 = normalize_week_schedule(p2_item)
-            except Exception as exc:
-                print(f"[warning] sample {idx}: exception normalizing parents: {exc}")
+        for rec in _iter_records(self.data_path):
+            if not isinstance(rec, dict):
+                skipped += 1
                 continue
 
+            p1 = _as_grid(rec.get("parent1"))
+            p2 = _as_grid(rec.get("parent2"))
             if p1 is None or p2 is None:
-                # skip malformed entries but warn with sample index for debugging
-                print(f"[warning] sample {idx}: could not parse parent schedules (p1={type(p1_item)}, p2={type(p2_item)})")
+                skipped += 1
                 continue
 
-            point = sample.get("crossover_point")
-            if point is None:
-                point = sample.get("crossover_bin")
-            if point is None:
-                print(f"[warning] sample {idx}: missing crossover point")
+            label_pair = _label_from_record(rec, threshold)
+            if label_pair is None:
+                skipped += 1
                 continue
+            label, _ = label_pair
 
-            try:
-                point = int(point)
-            except Exception:
-                print(f"[warning] sample {idx}: invalid crossover point value {point}")
-                continue
-            point = max(0, min(143, point))
+            p1_fit = _record_fitness(rec, "parent1_fitness")
+            p2_fit = _record_fitness(rec, "parent2_fitness")
+            if p1_fit is None or p2_fit is None:
+                missing_fitness += 1
+                p1_fit = p1_fit if p1_fit is not None else 0.0
+                p2_fit = p2_fit if p2_fit is not None else 0.0
 
-            parent1.append(p1)
-            parent2.append(p2)
-            labels.append(point)
+            X.append(extract_pair_features(p1, p2, p1_fit, p2_fit))
+            y.append(label)
 
-        if not parent1:
+        if not X:
             raise ValueError("No valid crossover samples could be parsed.")
 
-        X1 = np.array(parent1, dtype=np.float32)
-        X2 = np.array(parent2, dtype=np.float32)
-        class_ids = np.array(labels, dtype=np.int32)
-        y = self.soft_crossover_targets(class_ids)
+        X_arr = np.stack(X).astype(np.float32)
+        y_arr = np.asarray(y, dtype=np.int32)
 
-        counts = Counter(class_ids.tolist())
-        print("\nCrossover point distribution:")
-        print(f"  unique points : {len(counts)}")
-        print(f"  min / max     : {min(counts)} / {max(counts)}")
-        print("  top points    : " + ", ".join(f"{point}:{count}" for point, count in counts.most_common(8)))
+        print(f"\nLoaded {len(X_arr)} samples from {self.data_path}")
+        if skipped:
+            print(f"  Skipped {skipped} malformed records")
+        if missing_fitness:
+            print(f"  {missing_fitness} records missing parent fitness — defaulted to 0.0")
 
-        return X1, X2, y, class_ids
+        pos = int(np.sum(y_arr == 1))
+        neg = int(np.sum(y_arr == 0))
+        print(f"  Label 1 (compatible, fitness >= {threshold}): {pos}")
+        print(f"  Label 0 (incompatible)                       : {neg}")
+        return X_arr, y_arr
 
-    def soft_crossover_targets(self, class_ids, sigma: float = 2.0):
-        positions = np.arange(144, dtype=np.float32)
-        targets = []
-        for point in class_ids:
-            distances = positions - float(point)
-            probs = np.exp(-(distances ** 2) / (2.0 * sigma ** 2))
-            probs /= probs.sum()
-            targets.append(probs)
-        return np.array(targets, dtype=np.float32)
+    def balance_classes(self, X: np.ndarray, y: np.ndarray):
+        """Undersample the majority class (typically valid/compatible) to match
+        the minority class size — matches the spec's note that the GA produces
+        more valid than invalid pairs.
+        """
+        rng = np.random.RandomState(config.RANDOM_SEED)
+        idx_pos = np.where(y == 1)[0]
+        idx_neg = np.where(y == 0)[0]
+        if len(idx_pos) == 0 or len(idx_neg) == 0:
+            raise ValueError("Cannot balance: one of the classes has 0 samples.")
+        n = min(len(idx_pos), len(idx_neg))
+        sel_pos = rng.choice(idx_pos, size=n, replace=False)
+        sel_neg = rng.choice(idx_neg, size=n, replace=False)
+        selected = np.concatenate([sel_pos, sel_neg])
+        rng.shuffle(selected)
+        print(f"\nBalanced dataset: {n} per class -> {len(selected)} total")
+        return X[selected], y[selected]
 
-    def preprocess_data(self, X1, X2, y, class_ids):
-        strata = np.clip(class_ids // 12, 0, 11)
-        stratify = strata if min(Counter(strata.tolist()).values()) >= 2 else None
-
-        X1_train, X1_tmp, X2_train, X2_tmp, y_train, y_tmp, cls_train, cls_tmp = train_test_split(
-            X1,
-            X2,
-            y,
-            class_ids,
+    def preprocess_data(self, X: np.ndarray, y: np.ndarray):
+        X_train, X_tmp, y_train, y_tmp = train_test_split(
+            X, y,
             test_size=1.0 - config.TRAIN_RATIO,
             random_state=config.RANDOM_SEED,
-            stratify=stratify,
+            stratify=y,
         )
         test_fraction = config.TEST_RATIO / (config.TEST_RATIO + config.VALIDATION_RATIO)
-        tmp_strata = np.clip(cls_tmp // 12, 0, 11)
-        tmp_stratify = tmp_strata if min(Counter(tmp_strata.tolist()).values()) >= 2 else None
-        X1_val, X1_test, X2_val, X2_test, y_val, y_test, cls_val, cls_test = train_test_split(
-            X1_tmp,
-            X2_tmp,
-            y_tmp,
-            cls_tmp,
+        X_val, X_test, y_val, y_test = train_test_split(
+            X_tmp, y_tmp,
             test_size=test_fraction,
             random_state=config.RANDOM_SEED,
-            stratify=tmp_stratify,
+            stratify=y_tmp,
         )
-        return X1_train, X1_val, X1_test, X2_train, X2_val, X2_test, y_train, y_val, y_test, cls_train, cls_test
 
-    def build_model(self):
-        self.model = CrossoverRecommenderModel.build()
+        self.scaler.fit(X_train)
+        joblib.dump(self.scaler, SCALER_PATH)
+        X_train = self.scaler.transform(X_train)
+        X_val = self.scaler.transform(X_val)
+        X_test = self.scaler.transform(X_test)
+        return X_train, X_val, X_test, y_train, y_val, y_test
+
+    def build_model(self, input_dim: int):
+        self.model = CrossoverRecommenderModel.build(input_dim=input_dim)
         self.model.summary()
 
-    def train(self, X1_train, X2_train, y_train, X1_val, X2_val, y_val, sample_weight):
+    def train(self, X_train, y_train, X_val, y_val):
         cfg = config.CROSSOVER_RECOMMENDER_CONFIG
         callbacks = [
             keras.callbacks.EarlyStopping(
-                monitor="val_loss",
-                patience=20,
+                monitor="val_auc",
+                mode="max",
+                patience=cfg.get("early_stopping_patience", 20),
                 restore_best_weights=True,
                 verbose=1,
             ),
             keras.callbacks.ReduceLROnPlateau(
                 monitor="val_loss",
                 factor=0.5,
-                patience=6,
+                patience=cfg.get("reduce_lr_patience", 8),
                 min_lr=1e-7,
                 verbose=1,
             ),
-            keras.callbacks.CSVLogger(str(config.LOGS_DIR / "crossover_recommender_training.csv")),
+            keras.callbacks.CSVLogger(
+                str(config.LOGS_DIR / "crossover_recommender_training.csv")
+            ),
             keras.callbacks.ModelCheckpoint(
                 str(config.CROSSOVER_RECOMMENDER_PATH),
-                monitor="val_loss",
+                monitor="val_auc",
+                mode="max",
                 save_best_only=True,
                 verbose=1,
             ),
         ]
 
         self.history = self.model.fit(
-            [X1_train, X2_train],
-            y_train,
-            validation_data=([X1_val, X2_val], y_val),
+            X_train, y_train,
+            validation_data=(X_val, y_val),
             epochs=cfg["epochs"],
             batch_size=cfg["batch_size"],
             callbacks=callbacks,
-            sample_weight=sample_weight,
             verbose=1,
         )
 
-    def evaluate(self, X1_test, X2_test, y_test, cls_test):
-        results = self.model.evaluate([X1_test, X2_test], y_test, verbose=1)
-        print("\nTest metrics:")
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray):
+        results = self.model.evaluate(X_test, y_test, verbose=1)
+        print("\nTest metrics (Keras):")
         for name, value in zip(self.model.metrics_names, results):
             print(f"  {name}: {value:.6f}")
-        probs = self.model.predict([X1_test, X2_test], verbose=0)
-        pred = np.argmax(probs, axis=1)
-        for tolerance in (0, 3, 6, 12):
-            within = np.mean(np.abs(pred - cls_test) <= tolerance)
-            print(f"  within_{tolerance:02d}_slots: {within:.6f}")
-        for k in (3, 5, 10):
-            print(f"  top_{k}_exact: {top_k_accuracy_score(cls_test, probs, k=k, labels=np.arange(144)):.6f}")
-        return results
 
-    def point_sample_weights(self, class_ids):
-        counts = Counter(class_ids.tolist())
-        median_count = float(np.median(list(counts.values())))
-        weights = np.array(
-            [np.clip(median_count / counts[int(point)], 0.25, 4.0) for point in class_ids],
-            dtype=np.float32,
-        )
-        print(f"\nSample weights: min={weights.min():.4f}, max={weights.max():.4f}, mean={weights.mean():.4f}")
-        return weights
+        prob = self.model.predict(X_test, verbose=0).reshape(-1)
+        pred = (prob >= 0.5).astype(np.int32)
+
+        try:
+            auc = roc_auc_score(y_test, prob)
+        except ValueError:
+            auc = float("nan")
+        accuracy = float(np.mean(pred == y_test))
+
+        print("\nClassification report:")
+        print(classification_report(
+            y_test, pred, target_names=["invalid (0)", "compatible (1)"], zero_division=0,
+        ))
+
+        cm = confusion_matrix(y_test, pred, labels=[0, 1])
+        print("Confusion matrix (rows=true, cols=pred) [0=invalid, 1=compatible]:")
+        print(cm)
+        tn, fp, fn, tp = cm.ravel()
+        recall_invalid = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+        recall_compatible = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+
+        print(f"\nAccuracy             : {accuracy:.4f}  (target >= {ACC_TARGET})")
+        print(f"AUC                  : {auc:.4f}  (target >= {AUC_TARGET})")
+        print(f"Recall on invalid (0): {recall_invalid:.4f}  "
+              f"<- prioritise this: a missed incompatible pair wastes GA cycles")
+        print(f"Recall on compatible : {recall_compatible:.4f}")
+
+        if accuracy < ACC_TARGET:
+            print(f"  Warning: accuracy below {ACC_TARGET}")
+        if not np.isnan(auc) and auc < AUC_TARGET:
+            print(f"  Warning: AUC below {AUC_TARGET}")
+
+        return {
+            "accuracy": accuracy,
+            "auc": float(auc) if not np.isnan(auc) else None,
+            "recall_invalid": float(recall_invalid),
+            "recall_compatible": float(recall_compatible),
+        }
 
     def run(self):
         print("=" * 70)
-        print("CROSSOVER RECOMMENDER — TRAINING PIPELINE")
+        print("CROSSOVER RECOMMENDER — BINARY COMPATIBILITY PIPELINE")
         print("=" * 70)
 
-        X1, X2, y, class_ids = self.load_data()
-        X1_train, X1_val, X1_test, X2_train, X2_val, X2_test, y_train, y_val, y_test, cls_train, cls_test = self.preprocess_data(X1, X2, y, class_ids)
-        self.build_model()
-        self.train(X1_train, X2_train, y_train, X1_val, X2_val, y_val, self.point_sample_weights(cls_train))
-        self.evaluate(X1_test, X2_test, y_test, cls_test)
+        X, y = self.load_data()
+        X, y = self.balance_classes(X, y)
+        X_train, X_val, X_test, y_train, y_val, y_test = self.preprocess_data(X, y)
+        self.build_model(X_train.shape[1])
+        self.train(X_train, y_train, X_val, y_val)
+        _plot_training_curves(
+            self.history,
+            config.LOGS_DIR / "crossover_recommender_training.png",
+            "Crossover Recommender Training",
+            ["accuracy", "auc", "precision", "recall"],
+        )
+        metrics = self.evaluate(X_test, y_test)
 
         print("\n" + "=" * 70)
         print("DONE")
         print("=" * 70)
-        print(f"  Model → {config.CROSSOVER_RECOMMENDER_PATH}")
-
-    def cross_validate(self, X1, X2, y, class_ids, folds: int = 5):
-        from sklearn.model_selection import StratifiedKFold
-
-        strata = np.clip(class_ids // 12, 0, 11)
-        skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=config.RANDOM_SEED)
-        fold = 0
-        metrics = []
-        for train_val_idx, test_idx in skf.split(X1, strata):
-            fold += 1
-            print(f"\n--- Fold {fold}/{folds} ---")
-            X1_rest = X1[train_val_idx]
-            X2_rest = X2[train_val_idx]
-            y_rest = y[train_val_idx]
-            cls_rest = class_ids[train_val_idx]
-
-            X1_test = X1[test_idx]
-            X2_test = X2[test_idx]
-            y_test = y[test_idx]
-            cls_test = class_ids[test_idx]
-
-            # split rest into train/val
-            X1_tr, X1_val, X2_tr, X2_val, y_tr, y_val, cls_tr, cls_val = train_test_split(
-                X1_rest, X2_rest, y_rest, cls_rest,
-                test_size=config.VALIDATION_RATIO / (config.TRAIN_RATIO + config.VALIDATION_RATIO),
-                random_state=config.RANDOM_SEED + fold,
-                stratify=np.clip(cls_rest // 12, 0, 11),
-            )
-
-            # build & train fresh model per-fold
-            self.build_model()
-            self.train(X1_tr, X2_tr, y_tr, X1_val, X2_val, y_val, self.point_sample_weights(cls_tr))
-            res = self.evaluate(X1_test, X2_test, y_test, cls_test)
-            metrics.append(res)
-
-        import numpy as _np
-        mean = _np.mean(_np.array(metrics), axis=0)
-        print("\nCross-validation summary (mean over folds):")
-        for name, value in zip(self.model.metrics_names, mean):
-            print(f"  {name}: {value:.6f}")
+        print(f"  Model  -> {config.CROSSOVER_RECOMMENDER_PATH}")
+        print(f"  Scaler -> {SCALER_PATH}")
+        return metrics
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train crossover recommender")
-    parser.add_argument("data", nargs="?", help="Path to crossover data json")
-    parser.add_argument("--cv", type=int, default=0, help="Run k-fold cross-validation (k)")
+    parser = argparse.ArgumentParser(description="Train crossover compatibility classifier")
+    parser.add_argument("data", nargs="?", help="Path to crossover data (.json or .jsonl)")
     args = parser.parse_args()
 
-    trainer = CrossoverRecommenderTrainer(args.data)
-    if args.cv and args.cv > 1:
-        X1, X2, y, class_ids = trainer.load_data()
-        trainer.cross_validate(X1, X2, y, class_ids, folds=args.cv)
-    else:
-        trainer.run()
+    CrossoverRecommenderTrainer(args.data).run()

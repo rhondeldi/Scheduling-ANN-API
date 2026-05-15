@@ -37,9 +37,9 @@ FITNESS_PREDICTOR_CONFIG = {
 }
 
 CONSTRAINT_CLASSIFIER_CONFIG = {
-    'input_dim':               48,
-    'hidden_layers':           [256, 128, 64],
-    'dropout_rates':           [0.30, 0.20, 0.10],
+    'input_dim':               29,
+    'hidden_layers':           [128, 64, 32],
+    'dropout_rates':           [0.30, 0.20, 0.00],
     'num_constraint_types':    10,
     'learning_rate':           0.001,
     'batch_size':              32,
@@ -48,22 +48,27 @@ CONSTRAINT_CLASSIFIER_CONFIG = {
 }
 
 CROSSOVER_RECOMMENDER_CONFIG = {
-    'lstm_units':   128,
-    'dense_units':  64,
-    'dropout_rate': 0.20,
-    'learning_rate': 0.001,
-    'batch_size':   16,
-    'epochs':       150,
+    'input_dim':               23,
+    'hidden_layers':           [64, 32],
+    'dropout_rates':           [0.30, 0.20],
+    'learning_rate':           0.001,
+    'batch_size':              32,
+    'epochs':                  150,
+    'early_stopping_patience': 20,
+    'reduce_lr_patience':      8,
+    'fitness_threshold':       5.0,
 }
 
 MUTATION_PREDICTOR_CONFIG = {
-    'input_dim':      60,
-    'hidden_layers':  [128, 64],
+    'input_dim':      41,
+    'hidden_layers':  [128, 64, 32],
     'output_classes': 3,
-    'dropout_rate':   0.20,
+    'dropout_rate':   0.30,
     'learning_rate':  0.001,
     'batch_size':     32,
     'epochs':         150,
+    'early_stopping_patience': 20,
+    'reduce_lr_patience':      10,
 }
 
 # ── Training split ─────────────────────────────────────────────────────────────
@@ -88,6 +93,7 @@ FEATURE_SCALER_PATH = MODELS_DIR / "feature_scaler.joblib"
 FITNESS_SCALER_PATH = MODELS_DIR / "fitness_scaler.joblib"
 CONSTRAINT_SCALER_PATH = MODELS_DIR / "constraint_scaler.joblib"
 MUTATION_SCALER_PATH = MODELS_DIR / "mutation_scaler.joblib"
+CROSSOVER_SCALER_PATH = MODELS_DIR / "crossover_scaler.joblib"
 
 # ── Misc ───────────────────────────────────────────────────────────────────────
 LOG_LEVEL   = os.getenv("LOG_LEVEL", "INFO")
