@@ -71,6 +71,16 @@ class ScheduleFeatureExtractor:
         raw_ws = None
         if isinstance(schedule_data, dict):
             raw_ws = schedule_data.get("week_schedule")
+            if raw_ws is None:
+                for key in ("section_schedule", "weekSchedule", "sectionSchedule", "schedule"):
+                    if key in schedule_data:
+                        raw_ws = schedule_data.get(key)
+                        break
+            if isinstance(raw_ws, dict):
+                for key in ("week_schedule", "section_schedule", "weekSchedule", "sectionSchedule", "schedule"):
+                    if key in raw_ws:
+                        raw_ws = raw_ws.get(key)
+                        break
 
         parsed = np.zeros((self.n_days, self.n_slots, 3), dtype=np.int32)
         if not isinstance(raw_ws, list):

@@ -3,8 +3,8 @@ FastAPI service for serving ANN models
 """
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, model_validator
+from typing import List, Dict, Any, Optional, Tuple
 from contextlib import asynccontextmanager
 import numpy as np
 import joblib
@@ -48,6 +48,12 @@ logger = logging.getLogger("ann_api")
 models: Dict[str, Any] = {}
 scalers: Dict[str, Any] = {}
 feature_extractors: Dict[str, Any] = {}
+_constraint_model: keras.Model | None = None
+_constraint_scaler: Any | None = None
+_crossover_model: keras.Model | None = None
+_crossover_scaler: Any | None = None
+_mutation_model: keras.Model | None = None
+_mutation_scaler: Any | None = None
 
 
 
@@ -200,6 +206,40 @@ class ScheduleData(BaseModel):
     curriculum_info: Optional[Dict[str, Any]] = None
     resources: Optional[Dict[str, Any]] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_schedule_keys(cls, data: Any):
+        if not isinstance(data, dict):
+            return data
+
+        # Preferred key
+        if data.get("week_schedule") is not None:
+            return data
+
+        # Alternate keys used by other sections/clients
+        for key in ("section_schedule", "weekSchedule", "sectionSchedule"):
+            if data.get(key) is not None:
+                data = dict(data)
+                data["week_schedule"] = data[key]
+                return data
+
+        # Nested payloads like {"schedule": {"week_schedule": [...]}}
+        schedule_val = data.get("schedule")
+        if schedule_val is None:
+            return data
+        if isinstance(schedule_val, list):
+            data = dict(data)
+            data["week_schedule"] = schedule_val
+            return data
+        if isinstance(schedule_val, dict):
+            for key in ("week_schedule", "section_schedule", "weekSchedule", "sectionSchedule", "schedule"):
+                if schedule_val.get(key) is not None:
+                    data = dict(data)
+                    data["week_schedule"] = schedule_val[key]
+                    return data
+
+        return data
+
 
 class FitnessPredictionRequest(BaseModel):
     schedule: ScheduleData
@@ -211,6 +251,19 @@ class FitnessPredictionResponse(BaseModel):
     processing_time_ms: float
 
 
+class PreExtractedFeatures(BaseModel):
+    features: List[float]
+
+
+class FeatureBatchRequest(BaseModel):
+    feature_vectors: List[PreExtractedFeatures]
+
+
+class FitnessBatchPredictionResponse(BaseModel):
+    predictions: List[FitnessPredictionResponse]
+    processing_time_ms: float
+
+
 class ConstraintCheckRequest(BaseModel):
     schedule: ScheduleData
 
@@ -218,6 +271,29 @@ class ConstraintCheckRequest(BaseModel):
 class ConstraintCheckResponse(BaseModel):
     violations: Dict[str, bool]
     violation_scores: Dict[str, float]
+    processing_time_ms: float
+
+
+class ConstraintPredictionRequest(BaseModel):
+    schedule: ScheduleData
+
+
+class ConstraintPredictionResponse(BaseModel):
+    instructor_conflict: float
+    room_conflict: float
+    no_lunch_break: float
+    late_classes: float
+    excessive_hours: float
+    saturday_overload: float
+    processing_time_ms: float
+
+
+class ConstraintBatchRequest(BaseModel):
+    schedules: List[ScheduleData]
+
+
+class ConstraintBatchResponse(BaseModel):
+    predictions: List[ConstraintPredictionResponse]
     processing_time_ms: float
 
 
@@ -243,18 +319,51 @@ class CrossoverRecommendationResponse(BaseModel):
     processing_time_ms: float
 
 
+class CrossoverCompatibilityRequest(BaseModel):
+    parent1: ScheduleData
+    parent2: ScheduleData
+
+
+class CrossoverCompatibilityResponse(BaseModel):
+    compatible: bool
+    confidence: float
+    processing_time_ms: float
+
+
+class CrossoverBatchRequest(BaseModel):
+    pairs: List[CrossoverCompatibilityRequest]
+
+
+class CrossoverBatchResponse(BaseModel):
+    predictions: List[CrossoverCompatibilityResponse]
+    processing_time_ms: float
+
+
 class MutationPredictionRequest(BaseModel):
     before_schedule: ScheduleData
     after_schedule: ScheduleData
     mutation_type: str
-    before_fitness: float
-    after_fitness: float
+    before_fitness: float = 0.0
+    after_fitness: float = 0.0
 
 
 class MutationPredictionResponse(BaseModel):
-    prediction: str
-    confidence: float
-    probabilities: Dict[str, float]
+    label: str = ""
+    improve_prob: float = 0.0
+    neutral_prob: float = 0.0
+    worsen_prob: float = 0.0
+    processing_time_ms: float = 0.0
+    prediction: Optional[str] = None
+    confidence: Optional[float] = None
+    probabilities: Optional[Dict[str, float]] = None
+
+
+class MutationBatchRequest(BaseModel):
+    predictions: List[MutationPredictionRequest]
+
+
+class MutationBatchResponse(BaseModel):
+    predictions: List[MutationPredictionResponse]
     processing_time_ms: float
 
 
@@ -271,6 +380,120 @@ def _elapsed_ms(start: datetime) -> float:
 
 
 _MUTATION_LABELS = ["improve", "neutral", "worsen"]
+_CONSTRAINT_OUTPUT_NAMES = [
+    "instructor_conflict",
+    "room_conflict",
+    "no_lunch_break",
+    "late_classes",
+    "excessive_hours",
+    "saturday_overload",
+]
+
+
+def _run_constraint_batch(schedule_dicts: List[Dict]) -> List[Dict]:
+    if models.get("constraint") is None:
+        raise HTTPException(status_code=503, detail="Constraint classifier model not loaded")
+    if feature_extractors.get("constraint") is None:
+        raise HTTPException(status_code=503, detail="Constraint feature extractor not loaded")
+
+    feature_list = [
+        feature_extractors["constraint"].extract(schedule_dict)
+        for schedule_dict in schedule_dicts
+    ]
+    if not feature_list:
+        return []
+
+    features = np.vstack(feature_list)
+    if scalers.get("constraint") is not None:
+        features = scalers["constraint"].transform(features)
+
+    raw_predictions = models["constraint"].predict(features, verbose=0)
+    rows = np.asarray(raw_predictions).reshape(len(schedule_dicts), -1)
+
+    results: List[Dict[str, float]] = []
+    for row in rows:
+        result = {}
+        for idx, name in enumerate(_CONSTRAINT_OUTPUT_NAMES):
+            result[name] = float(row[idx]) if idx < row.size else 0.0
+        results.append(result)
+    return results
+
+
+def _run_crossover_batch(pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+    if models.get("crossover") is None:
+        raise HTTPException(status_code=503, detail="Crossover recommender model not loaded")
+    if feature_extractors.get("crossover") is None:
+        raise HTTPException(status_code=503, detail="Crossover feature extractor not loaded")
+
+    feature_list = [
+        feature_extractors["crossover"].extract(parent1, parent2, 0.0, 0.0)
+        for parent1, parent2 in pairs
+    ]
+    if not feature_list:
+        return []
+
+    features = np.vstack(feature_list)
+    if scalers.get("crossover") is not None:
+        features = scalers["crossover"].transform(features)
+
+    probabilities = models["crossover"].predict(features, verbose=0).reshape(-1)
+    return [
+        {
+            "compatible": bool(prob >= 0.5),
+            "confidence": float(prob),
+        }
+        for prob in probabilities
+    ]
+
+
+def _mutation_response_from_probs(probs: np.ndarray, processing_time_ms: float) -> MutationPredictionResponse:
+    row = np.asarray(probs).reshape(-1)
+    if row.size != len(_MUTATION_LABELS):
+        raise ValueError(
+            f"Mutation predictor returned {row.size} outputs; expected {len(_MUTATION_LABELS)}"
+        )
+
+    idx = int(np.argmax(row))
+    label = _MUTATION_LABELS[idx]
+    probability_map = {
+        label_name: float(prob) for label_name, prob in zip(_MUTATION_LABELS, row)
+    }
+    return MutationPredictionResponse(
+        label=label,
+        improve_prob=probability_map["improve"],
+        neutral_prob=probability_map["neutral"],
+        worsen_prob=probability_map["worsen"],
+        processing_time_ms=processing_time_ms,
+        prediction=label,
+        confidence=float(row[idx]),
+        probabilities=probability_map,
+    )
+
+
+def _run_mutation_batch(mutation_requests: List[Dict]) -> List[np.ndarray]:
+    if models.get("mutation") is None:
+        raise HTTPException(status_code=503, detail="Mutation predictor model not loaded")
+    if scalers.get("mutation") is None:
+        raise HTTPException(status_code=503, detail="Mutation scaler not loaded")
+    if feature_extractors.get("mutation") is None:
+        raise HTTPException(status_code=503, detail="Mutation feature extractor not loaded")
+
+    feature_list = [
+        feature_extractors["mutation"].extract(
+            request["before_schedule"],
+            request["after_schedule"],
+            request.get("mutation_type", ""),
+            request.get("before_fitness", 0.0),
+            request.get("after_fitness", 0.0),
+        )
+        for request in mutation_requests
+    ]
+    if not feature_list:
+        return []
+
+    features = np.vstack(feature_list)
+    features = scalers["mutation"].transform(features)
+    return list(models["mutation"].predict(features, verbose=0))
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -281,11 +504,16 @@ async def root():
         "message": "Scheduling ANN API",
         "version": "1.0.0",
         "endpoints": {
-            "health":      "/health",
-            "fitness":     "/predict/fitness",
-            "constraints": "/predict/constraints",
-            "crossover":   "/recommend/crossover",
-            "mutation":    "/predict/mutation",
+            "health":                         "/health",
+            "fitness":                        "/predict/fitness",
+            "fitness_batch":                  "/predict/fitness/batch",
+            "fitness_batch_preextracted":     "/predict/fitness/batch/preextracted",
+            "constraints":                    "/predict/constraints",
+            "constraint_batch":               "/predict/constraint/batch",
+            "crossover":                      "/recommend/crossover",
+            "crossover_batch":                "/predict/crossover/batch",
+            "mutation":                       "/predict/mutation",
+            "mutation_batch":                 "/predict/mutation/batch",
         },
     }
 
@@ -301,6 +529,7 @@ async def health_check():
         "constraint_classifier":models.get("constraint") is not None,
         "crossover_recommender":models.get("crossover")  is not None,
         "mutation_predictor":   models.get("mutation")   is not None,
+        "feature_scaler":       scalers.get("features")  is not None,
     }
     n_loaded = sum(loaded_map.values())
 
@@ -429,6 +658,43 @@ async def predict_fitness_batch(requests: Any = Body(...)):
         raise HTTPException(status_code=500, detail=f"Batch prediction failed: {exc}")
 
 
+@app.post("/predict/fitness/batch/preextracted", response_model=FitnessBatchPredictionResponse)
+async def predict_fitness_batch_preextracted(request: FeatureBatchRequest):
+    start_time = datetime.now()
+
+    if models.get("fitness") is None:
+        raise HTTPException(status_code=503, detail="Fitness predictor model not loaded")
+    if scalers.get("features") is None or scalers.get("fitness") is None:
+        raise HTTPException(status_code=503, detail="Feature or fitness scaler not loaded")
+
+    try:
+        if not request.feature_vectors:
+            return FitnessBatchPredictionResponse(predictions=[], processing_time_ms=0.0)
+
+        features = np.asarray(
+            [item.features for item in request.feature_vectors],
+            dtype=np.float32,
+        )
+        features_normalized = scalers["features"].transform(features)
+        predictions_normalized = models["fitness"].predict(features_normalized, verbose=0)
+        predictions = scalers["fitness"].inverse_transform(predictions_normalized).reshape(-1)
+        ms = _elapsed_ms(start_time)
+        return FitnessBatchPredictionResponse(
+            predictions=[
+                FitnessPredictionResponse(
+                    predicted_fitness=float(pred),
+                    confidence=0.0,
+                    processing_time_ms=ms,
+                )
+                for pred in predictions
+            ],
+            processing_time_ms=ms,
+        )
+    except Exception as exc:
+        logger.error(f"/predict/fitness/batch/preextracted failed: {exc}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Pre-extracted batch prediction failed: {exc}")
+
+
 @app.post("/predict/constraints", response_model=ConstraintCheckResponse)
 async def check_constraints(request: ConstraintCheckRequest):
     start_time = datetime.now()
@@ -471,6 +737,36 @@ async def check_constraints(request: ConstraintCheckRequest):
     except Exception as exc:
         logger.error(f"/predict/constraints — error: {exc}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Constraint checking failed: {exc}")
+
+
+@app.post("/predict/constraint/batch", response_model=ConstraintBatchResponse)
+async def predict_constraint_batch(request: ConstraintBatchRequest):
+    start_time = datetime.now()
+
+    try:
+        schedule_dicts = [schedule.model_dump() for schedule in request.schedules]
+        raw_predictions = _run_constraint_batch(schedule_dicts)
+        ms = _elapsed_ms(start_time)
+        return ConstraintBatchResponse(
+            predictions=[
+                ConstraintPredictionResponse(
+                    instructor_conflict=pred["instructor_conflict"],
+                    room_conflict=pred["room_conflict"],
+                    no_lunch_break=pred["no_lunch_break"],
+                    late_classes=pred["late_classes"],
+                    excessive_hours=pred["excessive_hours"],
+                    saturday_overload=pred["saturday_overload"],
+                    processing_time_ms=ms,
+                )
+                for pred in raw_predictions
+            ],
+            processing_time_ms=ms,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"/predict/constraint/batch failed: {exc}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Constraint batch prediction failed: {exc}")
 
 
 @app.post("/recommend/crossover", response_model=CrossoverRecommendationResponse)
@@ -522,6 +818,35 @@ async def recommend_crossover(request: CrossoverRecommendationRequest):
         raise HTTPException(status_code=500, detail=f"Crossover recommendation failed: {exc}")
 
 
+@app.post("/predict/crossover/batch", response_model=CrossoverBatchResponse)
+async def predict_crossover_batch(request: CrossoverBatchRequest):
+    start_time = datetime.now()
+
+    try:
+        pairs = [
+            (pair.parent1.model_dump(), pair.parent2.model_dump())
+            for pair in request.pairs
+        ]
+        raw_predictions = _run_crossover_batch(pairs)
+        ms = _elapsed_ms(start_time)
+        return CrossoverBatchResponse(
+            predictions=[
+                CrossoverCompatibilityResponse(
+                    compatible=pred["compatible"],
+                    confidence=pred["confidence"],
+                    processing_time_ms=ms,
+                )
+                for pred in raw_predictions
+            ],
+            processing_time_ms=ms,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"/predict/crossover/batch failed: {exc}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Crossover batch prediction failed: {exc}")
+
+
 @app.post("/predict/mutation", response_model=MutationPredictionResponse)
 async def predict_mutation(request: MutationPredictionRequest):
     start_time = datetime.now()
@@ -560,6 +885,10 @@ async def predict_mutation(request: MutationPredictionRequest):
             f"/predict/mutation — prediction={prediction} conf={confidence:.4f} ({ms:.1f} ms)"
         )
         return MutationPredictionResponse(
+            label=prediction,
+            improve_prob=probability_map.get("improve", 0.0),
+            neutral_prob=probability_map.get("neutral", 0.0),
+            worsen_prob=probability_map.get("worsen", 0.0),
             prediction=prediction,
             confidence=confidence,
             probabilities=probability_map,
@@ -571,6 +900,28 @@ async def predict_mutation(request: MutationPredictionRequest):
 
 
 # ── entrypoint ────────────────────────────────────────────────────────────────
+
+@app.post("/predict/mutation/batch", response_model=MutationBatchResponse)
+async def predict_mutation_batch(request: MutationBatchRequest):
+    start_time = datetime.now()
+
+    try:
+        mutation_dicts = [item.model_dump() for item in request.predictions]
+        raw_predictions = _run_mutation_batch(mutation_dicts)
+        ms = _elapsed_ms(start_time)
+        return MutationBatchResponse(
+            predictions=[
+                _mutation_response_from_probs(probs, ms)
+                for probs in raw_predictions
+            ],
+            processing_time_ms=ms,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"/predict/mutation/batch failed: {exc}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Mutation batch prediction failed: {exc}")
+
 
 if __name__ == "__main__":
     import uvicorn

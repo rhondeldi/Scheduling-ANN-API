@@ -123,37 +123,42 @@ class ConstraintClassifierModel:
 
 
 class CrossoverRecommenderModel:
-    """
-    ANN Model to recommend optimal crossover points.
+    """ANN model that predicts whether a (parent1, parent2) pair is
+    compatible for crossover — i.e. whether the GA should attempt
+    a crossover between them or skip the pair.
+
+    Input  : 23 compatibility features (see scripts/train_crossover_recommender.py).
+    Output : single sigmoid probability of compatibility.
     """
 
     @staticmethod
-    def build(sequence_length: int = 144, feature_dim: int = 3) -> keras.Model:
+    def build(input_dim: int = None) -> keras.Model:
         cfg = config.CROSSOVER_RECOMMENDER_CONFIG
+        if input_dim is None:
+            input_dim = cfg['input_dim']
 
-        parent1_input = layers.Input(shape=(sequence_length, feature_dim), name='parent1')
-        parent2_input = layers.Input(shape=(sequence_length, feature_dim), name='parent2')
+        model = models.Sequential([
+            layers.Input(shape=(input_dim,), name='input'),
 
-        combined = layers.Concatenate(axis=-1, name='concat_parents')([parent1_input, parent2_input])
+            layers.Dense(cfg['hidden_layers'][0], name='dense_1'),
+            layers.BatchNormalization(name='bn_1'),
+            layers.Activation('relu', name='relu_1'),
+            layers.Dropout(cfg['dropout_rates'][0], name='dropout_1'),
 
-        x = layers.LSTM(cfg['lstm_units'], return_sequences=False, name='lstm')(combined)
-        x = layers.Dropout(cfg['dropout_rate'], name='dropout_lstm')(x)
-        x = layers.Dense(cfg['dense_units'], activation='relu', name='dense')(x)
-        x = layers.Dropout(cfg['dropout_rate'], name='dropout_dense')(x)
+            layers.Dense(cfg['hidden_layers'][1], activation='relu', name='dense_2'),
+            layers.Dropout(cfg['dropout_rates'][1], name='dropout_2'),
 
-        outputs = layers.Dense(sequence_length, activation='softmax', name='crossover_probs')(x)
+            layers.Dense(1, activation='sigmoid', name='output'),
+        ], name='CrossoverRecommender')
 
-        model = models.Model(
-            inputs=[parent1_input, parent2_input],
-            outputs=outputs,
-            name='CrossoverRecommender',
-        )
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=cfg['learning_rate']),
-            loss='categorical_crossentropy',
+            loss='binary_crossentropy',
             metrics=[
-                keras.metrics.CategoricalAccuracy(name='accuracy'),
-                keras.metrics.TopKCategoricalAccuracy(k=5, name='top_5_accuracy'),
+                keras.metrics.BinaryAccuracy(name='accuracy'),
+                keras.metrics.AUC(name='auc'),
+                keras.metrics.Precision(name='precision'),
+                keras.metrics.Recall(name='recall'),
             ],
         )
         return model
@@ -177,20 +182,27 @@ class MutationPredictorModel:
 
         cfg = config.MUTATION_PREDICTOR_CONFIG
 
-        model = models.Sequential([
+        hidden = cfg['hidden_layers']
+        seq = [
             layers.Input(shape=(input_dim,), name='input'),
-            layers.Dense(cfg['hidden_layers'][0], name='dense_1'),
+
+            layers.Dense(hidden[0], name='dense_1'),
             layers.BatchNormalization(name='bn_1'),
             layers.Activation('relu', name='relu_1'),
             layers.Dropout(cfg['dropout_rate'], name='dropout_1'),
 
-            layers.Dense(cfg['hidden_layers'][1], name='dense_2'),
+            layers.Dense(hidden[1], name='dense_2'),
             layers.BatchNormalization(name='bn_2'),
             layers.Activation('relu', name='relu_2'),
             layers.Dropout(cfg['dropout_rate'], name='dropout_2'),
+        ]
+        if len(hidden) >= 3:
+            seq += [
+                layers.Dense(hidden[2], activation='relu', name='dense_3'),
+            ]
+        seq.append(layers.Dense(num_classes, activation='softmax', name='output'))
 
-            layers.Dense(num_classes, activation='softmax', name='output'),
-        ], name='MutationPredictor')
+        model = models.Sequential(seq, name='MutationPredictor')
 
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=cfg['learning_rate']),
