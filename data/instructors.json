@@ -1,0 +1,574 @@
+{
+  "instructors": [
+    {
+      "id": 1,
+      "name": "Alvarez, Haziel T.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 2,
+      "name": "Bayla, Maria Cristina D.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 3,
+      "name": "Baradi, Gersom N.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 4,
+      "name": "Cahapin, Erwin L.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 5,
+      "name": "Callanta, Joseph S.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 6,
+      "name": "Centeno, Zarah R.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 7,
+      "name": "Cervantes, Aileen A.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 8,
+      "name": "Dela Cruz, Hazelyn H.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 9,
+      "name": "Lilang, Maricar M.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 10,
+      "name": "Lopez, Jay M.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 11,
+      "name": "Malabag, Beverly A.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 12,
+      "name": "Manarpiis, Jane A.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 13,
+      "name": "Mendoza, Hermilina A.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 14,
+      "name": "Patambang, Emy Grace B.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 15,
+      "name": "Pragacha, Rosemarie N.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 16,
+      "name": "Sadang, Wendy C.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 17,
+      "name": "Samson, Brylle D.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 18,
+      "name": "Santiago, Cereneo Jr.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 19,
+      "name": "Sarmiento, Lemellu Nida L.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 20,
+      "name": "Ulanday, Maria Leah P.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 21,
+      "name": "Vertudez, Maria Criselda M.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 22,
+      "name": "Ymana, Roselyn A.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 23,
+      "name": "Aba, Regina F.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 24,
+      "name": "Ables, Maribe G.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 25,
+      "name": "Adrales, Karl Louise",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 26,
+      "name": "Agapito, Rielle Mar S.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 27,
+      "name": "Alabanza, Jared E.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 28,
+      "name": "Alamendras, Mary Ann M.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 29,
+      "name": "Ambojia, Kem Warren P.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 30,
+      "name": "Ambunan, Michelle P.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 31,
+      "name": "Ancajas, Hazel B.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 32,
+      "name": "Anciro, Eleandro C.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 33,
+      "name": "Añonuevo, Jeferlyn A.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 34,
+      "name": "Añonuevo, Michael Jeffrey A.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 35,
+      "name": "Arboleda, Imari Carla B.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 36,
+      "name": "Arive, Aaron Gio A.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 37,
+      "name": "Baluyot, Juwan Clarence M.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 38,
+      "name": "Barbuco, Danel Dave v.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 39,
+      "name": "Barretto, Liera Ann B.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 40,
+      "name": "Batad, Antonio",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 41,
+      "name": "Bawag, Kristine Joyce A.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 42,
+      "name": "Belaro, Christel M.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 43,
+      "name": "Bugtong, Daniel D.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 44,
+      "name": "Cadusale, Jr., Alberto B.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 45,
+      "name": "Cañete, Revelyn L.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 46,
+      "name": "Carabeo, Christianne Roie",
+      "deapartment": "TED"
+    },
+    {
+      "id": 47,
+      "name": "Castro, Merlina B.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 48,
+      "name": "Castronuevo, Alyssa G.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 49,
+      "name": "Catibog, Jessa R.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 50,
+      "name": "Cervantes, Ciara Mae",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 51,
+      "name": "Coroneza, Ryandy",
+      "deapartment": "TED"
+    },
+    {
+      "id": 52,
+      "name": "Cortez, Arvin Jay L.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 53,
+      "name": "Cubcubin, Marc Lourenz A.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 54,
+      "name": "Dandan, Ingersoll",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 55,
+      "name": "David, Lorenz L.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 56,
+      "name": "Dela Cruz, Precious Angelica",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 57,
+      "name": "Dela Cruz, Rogan",
+      "deapartment": "TED"
+    },
+    {
+      "id": 58,
+      "name": "Dela Peña, Ruel Vincent",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 59,
+      "name": "Descallar, Alice D.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 60,
+      "name": "Dimaano, Jake",
+      "deapartment": "TED"
+    },
+    {
+      "id": 61,
+      "name": "Dimate, Mariella G.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 62,
+      "name": "Dizon, Benjamin S.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 63,
+      "name": "Dulanas, Eugene Joseph M.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 64,
+      "name": "Escarlo, Jolina B.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 65,
+      "name": "Gamboa, Kent B.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 66,
+      "name": "Guilaran, Kenny",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 67,
+      "name": "Guillermo, Maria Jobelle R.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 68,
+      "name": "Historia, Agnes D.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 69,
+      "name": "Icatlo, Noel C.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 70,
+      "name": "Ilagan, Elyz C.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 71,
+      "name": "Jocson, Audrey M.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 72,
+      "name": "Juanillo, Sheela Mae",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 73,
+      "name": "Layugan, Nomer",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 74,
+      "name": "Leyes, Ezra Eliza",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 75,
+      "name": "Lintag, Isabella",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 76,
+      "name": "Luyon, Maria Rosalie T.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 77,
+      "name": "Mabilangan, Ma. Catalina P.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 78,
+      "name": "Magbanua, Leonard T.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 79,
+      "name": "Magno-Pato, Shaery Mae M.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 80,
+      "name": "Maloles, Alma T.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 81,
+      "name": "Manalo, Micah Joyce J.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 82,
+      "name": "Matilla, Gredel LoveMae E.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 83,
+      "name": "Medina, Catherine T.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 84,
+      "name": "Mendoza, Jeric Jay A.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 85,
+      "name": "Miranda, Dezy May",
+      "deapartment": "TED"
+    },
+    {
+      "id": 86,
+      "name": "Miranda, Jozen M.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 87,
+      "name": "Monsod, Marylle Anne A.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 88,
+      "name": "Padua, Johnwin M.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 89,
+      "name": "Paredes, Gabrielle Beatriz",
+      "deapartment": "TED"
+    },
+    {
+      "id": 90,
+      "name": "Patambang, Phoebe Grace B.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 91,
+      "name": "Patinga, Kristine T.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 92,
+      "name": "Puyo, Johneros P.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 93,
+      "name": "Rebancos, Bryan",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 94,
+      "name": "Rebancos, Perla N.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 95,
+      "name": "Rodriguez, Cherry Ann V.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 96,
+      "name": "Runes, Vinz Aster S.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 97,
+      "name": "Sanchez, Jershiela Z.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 98,
+      "name": "Sangil, Andrea Marie",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 99,
+      "name": "Set, Jane Lalaine B.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 100,
+      "name": "Sico, Riza Liezl S.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 101,
+      "name": "Simpao, Renato Jr. A.",
+      "deapartment": "DOM"
+    },
+    {
+      "id": 102,
+      "name": "Ta-ala, Bench Mark",
+      "deapartment": "TED"
+    },
+    {
+      "id": 103,
+      "name": "Taberna, Rich Edrian D.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 104,
+      "name": "Tolentino, Paulene Joy B.",
+      "deapartment": "DAS"
+    },
+    {
+      "id": 105,
+      "name": "Usa, Jumelyn L.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 106,
+      "name": "Velasquez, Jose O.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 107,
+      "name": "Velasquez, Kyril Jon R.",
+      "deapartment": "DIT"
+    },
+    {
+      "id": 108,
+      "name": "Vida, Raquel E.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 109,
+      "name": "Ymana, Inna Crizzia A.",
+      "deapartment": "DTHM"
+    },
+    {
+      "id": 110,
+      "name": "Escultura, Gemmuel",
+      "deapartment": "TED"
+    },
+    {
+      "id": 111,
+      "name": "Layugan, Angelyn",
+      "deapartment": "TED"
+    },
+    {
+      "id": 112,
+      "name": "Lopez, Ma. Divina",
+      "deapartment": "TED"
+    },
+    {
+      "id": 113,
+      "name": "Papa, Carla Mae D.",
+      "deapartment": "TED"
+    },
+    {
+      "id": 114,
+      "name": "Papa, Jenny Rose R.",
+      "deapartment": "TED"
+    }
+  ]
+}

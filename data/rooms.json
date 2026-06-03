@@ -1,0 +1,199 @@
+{
+  "rooms": [
+    {
+      "id": 1,
+      "name": "113",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 2,
+      "name": "114",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 3,
+      "name": "115",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 4,
+      "name": "212",
+      "types": "Lab Room"
+    },
+    {
+      "id": 5,
+      "name": "213",
+      "types": "Lab Room"
+    },
+    {
+      "id": 6,
+      "name": "214",
+      "types": "Lab Room"
+    },
+    {
+      "id": 7,
+      "name": "222",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 8,
+      "name": "223",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 9,
+      "name": "224",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 10,
+      "name": "225",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 11,
+      "name": "313",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 12,
+      "name": "314",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 13,
+      "name": "315",
+      "types": "Lab Room"
+    },
+    {
+      "id": 14,
+      "name": "322 A",
+      "types": "Lab Room"
+    },
+    {
+      "id": 15,
+      "name": "322 B",
+      "types": "Lab Room"
+    },
+    {
+      "id": 16,
+      "name": "323 A",
+      "types": "Lab Room"
+    },
+    {
+      "id": 17,
+      "name": "323 B",
+      "types": "Lab Room"
+    },
+    {
+      "id": 18,
+      "name": "332 A",
+      "types": "Lab Room"
+    },
+    {
+      "id": 19,
+      "name": "332 B",
+      "types": "Lab Room"
+    },
+    {
+      "id": 20,
+      "name": "333 A",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 21,
+      "name": "333 B",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 22,
+      "name": "341 A",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 23,
+      "name": "341 B",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 24,
+      "name": "342 A",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 25,
+      "name": "342 B",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 26,
+      "name": "343 A",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 27,
+      "name": "343 B",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 28,
+      "name": "345",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 29,
+      "name": "351",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 30,
+      "name": "352",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 31,
+      "name": "353",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 32,
+      "name": "354",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 33,
+      "name": "355",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 34,
+      "name": "356",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 35,
+      "name": "357",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 36,
+      "name": "358",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 37,
+      "name": "359",
+      "types": "Lecture Room"
+    },
+    {
+      "id": 38,
+      "name": "Kitchen 1",
+      "types": "Lab Room"
+    },
+    {
+      "id": 39,
+      "name": "Kitchen 2",
+      "types": "Lab Room"
+    }
+  ]
+}
