@@ -1,6 +1,8 @@
 """
 Visual demonstration of the Hybrid ANN-Assisted Genetic Algorithm system.
 Run this script to print the backend + ANN architecture and flow.
+
+For comprehensive architecture documentation, see: docs/SYSTEM_ARCHITECTURE.md
 """
 
 from textwrap import dedent
@@ -13,8 +15,9 @@ def print_architecture():
         dedent(
             """
             ================================================================================
-            HYBRID ANN-ASSISTED GENETIC ALGORITHM SCHEDULER
+            HYBRID ANN-ASSISTED GENETIC ALGORITHM SCHEDULER (v2.0)
             ================================================================================
+            📖 For detailed architecture: docs/SYSTEM_ARCHITECTURE.md
 
             SYSTEM ARCHITECTURE
             -------------------------------------------------------------------------------
@@ -182,6 +185,12 @@ if __name__ == "__main__":
     print_feature_extraction_example()
     print()
     print("=" * 79)
+    print("📖 DOCUMENTATION:")
+    print("   • docs/SYSTEM_ARCHITECTURE.md     - Full architecture details (NEW!)")
+    print("   • docs/GA_ANN_INTEGRATION_WORKING.md - Integration setup")
+    print("   • docs/PROCESS_FLOW.md            - Training workflow")
+    print("   • README.md                       - Quick reference")
+    print()
     print("Next step: start the ANN API, confirm /health shows all 4 models loaded,")
     print("and then run schedule generation so the backend can use the hybrid flow.")
     print("=" * 79)

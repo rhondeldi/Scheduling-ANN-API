@@ -510,7 +510,7 @@ KIND_CHECKERS = {
 
 DEFAULT_PATHS = {
     "fitness":    PROJECT_ROOT / "data" / "training_output" / "training_data.json",
-    "constraint": PROJECT_ROOT / "data" / "training_output" / "constraint_samples.augmented.jsonl",
+    "constraint": PROJECT_ROOT / "data" / "training_output" / "constraint_samples.jsonl",
     "crossover":  PROJECT_ROOT / "data" / "training_output" / "crossover_samples.jsonl",
     "mutation":   PROJECT_ROOT / "data" / "training_output" / "mutation_samples.jsonl",
 }
